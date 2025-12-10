@@ -5,7 +5,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Any
 from collections.abc import Callable
+import http.server
+import os
 import shutil
+import sys
+import socketserver
+import threading
 import webbrowser
 
 from PySide6.QtCore import QObject, QThread, Qt, Signal
@@ -99,6 +104,9 @@ class SimplicityPressWindow(QMainWindow):
         self._current_thread: Optional[QThread] = None
         self._current_worker: Optional[CommandWorker] = None
         self._command_running = False
+        self._serve_thread: Optional[threading.Thread] = None
+        self._serve_stop_event: Optional[threading.Event] = None
+        self._serve_port: int = 8000
 
         self._build_ui()
         self._update_site_state()
@@ -299,6 +307,13 @@ class SimplicityPressWindow(QMainWindow):
         worker = CommandWorker(spec)
         worker.moveToThread(thread)
 
+        if "progress_cb" in worker._spec.kwargs:
+            def _cb(event: ProgressEvent) -> None:
+                message = event.message or ""
+                worker.progress.emit(f"[{event.stage.value}] {message}")
+
+            worker._spec.kwargs["progress_cb"] = _cb
+
         thread.started.connect(worker.run)
         worker.progress.connect(self._append_log)
         worker.finished.connect(self._on_command_finished)
@@ -379,30 +394,80 @@ class SimplicityPressWindow(QMainWindow):
             kwargs={
                 "output_dir": output_dir,
                 "include_drafts": include_drafts,
-                "progress_cb": self._log_progress_event,
+                "progress_cb": None,
             },
         )
         self._start_task(spec, "Building site...")
 
     def _on_preview_clicked(self) -> None:
-        root = self._current_site_root()
-        if root is None:
-            QMessageBox.warning(self, "No site root", "Select a site root first.")
+        # If a server is already running, stop it.
+        if self._serve_thread is not None and self._serve_thread.is_alive():
+            if self._serve_stop_event is not None:
+                self._serve_stop_event.set()
+            self._serve_thread.join(timeout=2)
+            self._serve_thread = None
+            self._serve_stop_event = None
+            self.preview_button.setText("Preview output")
+            self.status_label.setText("Preview server stopped.")
+            self._append_log("Preview server stopped.")
             return
 
-        output_dir = self._current_output_dir(root)
-        index_path = output_dir / "index.html"
-        if not index_path.exists():
+        root = self._current_site_root()
+        if root is None or not is_simplicitypress_site(root):
             QMessageBox.warning(
                 self,
-                "Index not found",
-                "index.html not found in the output directory.\n"
-                "Build the site first or check your output directory.",
+                "Invalid site root",
+                "Please select a SimplicityPress site.",
             )
             return
 
+        output_dir = self._current_output_dir(root)
+        if not output_dir.exists():
+            QMessageBox.warning(
+                self,
+                "Output not found",
+                "Output directory does not exist. Build the site first.",
+            )
+            return
+
+        url = f"http://127.0.0.1:{self._serve_port}/"
+
+        stop_event = threading.Event()
+
+        def _serve() -> None:
+            os.chdir(output_dir)
+
+            class QuietTCPServer(socketserver.TCPServer):
+                """
+                TCPServer that suppresses noisy tracebacks for common
+                connection aborts (e.g., favicon 404s in browsers).
+                """
+
+                def handle_error(self, request, client_address):  # type: ignore[override]
+                    exc_type, exc, _ = sys.exc_info()
+                    if isinstance(exc, ConnectionAbortedError):
+                        # Ignore benign connection aborts.
+                        return
+                    super().handle_error(request, client_address)
+
+            handler = http.server.SimpleHTTPRequestHandler
+            with QuietTCPServer(("", self._serve_port), handler) as httpd:
+                httpd.timeout = 1.0
+                while not stop_event.is_set():
+                    httpd.handle_request()
+
+        thread = threading.Thread(target=_serve, daemon=True)
+        thread.start()
+
+        self._serve_thread = thread
+        self._serve_stop_event = stop_event
+        self.preview_button.setText("Stop server")
+
+        self.status_label.setText(f"Preview server running at {url}")
+        self._append_log(f"Preview server running at {url}")
+
         try:
-            webbrowser.open(index_path.as_uri())
+            webbrowser.open(url)
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(
                 self,
@@ -422,6 +487,14 @@ class SimplicityPressWindow(QMainWindow):
             except RuntimeError:
                 # Underlying C++ thread object may already be deleted.
                 pass
+
+        # Stop preview server if running.
+        if self._serve_thread is not None and self._serve_thread.is_alive():
+            if self._serve_stop_event is not None:
+                self._serve_stop_event.set()
+            self._serve_thread.join(timeout=2)
+            self._serve_thread = None
+            self._serve_stop_event = None
 
         event.accept()
 
