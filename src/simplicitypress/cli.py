@@ -1,9 +1,5 @@
 from pathlib import Path
-from textwrap import dedent
 from typing import Optional
-import http.server
-import os
-import socketserver
 
 import typer
 
