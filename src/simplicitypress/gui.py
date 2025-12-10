@@ -110,6 +110,8 @@ class SimplicityPressWindow(QMainWindow):
         self._current_thread: Optional[QThread] = None
         self._current_worker: Optional[CommandWorker] = None
         self._command_running = False
+        self._serve_process: Optional[subprocess.Popen] = None
+        self._serve_port: int = 8000
 
         self._build_ui()
         self._update_site_state()
@@ -380,30 +382,84 @@ class SimplicityPressWindow(QMainWindow):
         self._start_command(spec, "Building site...")
 
     def _on_preview_clicked(self) -> None:
-        root = self._current_site_root()
-        if root is None:
-            QMessageBox.warning(self, "Invalid site root", "Please select a site root.")
+        # If a preview server is already running, offer to stop it.
+        if self._serve_process is not None and self._serve_process.poll() is None:
+            reply = QMessageBox.question(
+                self,
+                "Stop preview server",
+                "A preview server is currently running.\n\nStop preview server?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if reply == QMessageBox.Yes:
+                try:
+                    self._serve_process.terminate()
+                    self._serve_process.wait(timeout=5)
+                except Exception:
+                    # Best-effort shutdown; ignore errors.
+                    pass
+                finally:
+                    self._serve_process = None
+                self.status_label.setText("Preview server stopped.")
+                self._append_log("Preview server stopped.")
             return
 
-        output_dir = self._current_output_dir(root)
-        index_path = output_dir / "index.html"
-        if not index_path.exists():
+        root = self._current_site_root()
+        if root is None or not is_simplicitypress_site(root):
             QMessageBox.warning(
                 self,
-                "Index not found",
-                "index.html not found in the output directory.\n"
-                "Build the site first or check your output directory.",
+                "Invalid site root",
+                "Please select a SimplicityPress site.",
             )
             return
 
+        output_dir = self._current_output_dir(root)
+
+        args: list[str] = [
+            sys.executable,
+            "-m",
+            "simplicitypress",
+            "serve",
+            "--site-root",
+            str(root),
+            "--port",
+            str(self._serve_port),
+        ]
+        if output_dir:
+            args.extend(
+                [
+                    "--output",
+                    str(output_dir),
+                    "--no-build",
+                ],
+            )
+
         try:
-            webbrowser.open(index_path.as_uri())
+            self._append_log(f"Starting preview server: {' '.join(args)}")
+            process = subprocess.Popen(args, cwd=root)
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to start preview server:\n{exc}",
+            )
+            self._append_log(f"Failed to start preview server: {exc}")
+            return
+
+        self._serve_process = process
+        url = f"http://127.0.0.1:{self._serve_port}/"
+        self.status_label.setText(f"Preview server running at {url}")
+        self._append_log(f"Preview server running at {url}")
+
+        try:
+            webbrowser.open(url)
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(
                 self,
                 "Error",
                 f"Failed to open browser:\n{exc}",
             )
+            self._append_log(f"Failed to open browser: {exc}")
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         # Ensure background thread is stopped on close.
@@ -416,6 +472,17 @@ class SimplicityPressWindow(QMainWindow):
             except RuntimeError:
                 # Underlying C++ thread object may already be deleted.
                 pass
+
+        # Ensure preview server process is stopped on close.
+        if self._serve_process is not None and self._serve_process.poll() is None:
+            try:
+                self._serve_process.terminate()
+                self._serve_process.wait(timeout=5)
+            except Exception:
+                pass
+            finally:
+                self._serve_process = None
+
         event.accept()
 
 
