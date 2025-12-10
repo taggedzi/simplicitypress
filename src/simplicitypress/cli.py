@@ -2,9 +2,16 @@ from pathlib import Path
 
 import typer
 
-from .core import build_site, load_config
+from .core import ProgressEvent, build_site, load_config
 
 app = typer.Typer(help="SimplicityPress static site generator CLI.")
+
+
+def _print_progress(event: ProgressEvent) -> None:
+    """
+    Simple progress callback used by the CLI to report build stages.
+    """
+    typer.echo(f"[{event.stage}] {event.current}/{event.total} {event.message}")
 
 
 @app.command()
@@ -39,16 +46,13 @@ def build(
         Path("."),
         help="Path to the site root directory.",
     ),
-) -> None:
+    ) -> None:
     """
     Build the static site from the given site root.
     """
     typer.echo(f"[build] Building site at: {site_root}")
-    try:
-        config = load_config(site_root)
-        build_site(config)
-    except NotImplementedError:
-        typer.echo("Build functionality is not implemented yet. Stay tuned!")
+    config = load_config(site_root)
+    build_site(config, progress_cb=_print_progress)
 
 
 @app.command()
@@ -66,4 +70,3 @@ def serve(
 
 if __name__ == "__main__":
     app()
-

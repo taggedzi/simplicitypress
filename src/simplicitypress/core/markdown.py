@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from markdown_it import MarkdownIt
+
+_md = MarkdownIt()
+
 
 def render_markdown(markdown_text: str) -> str:
     """
-    Render Markdown to HTML using markdown-it-py.
-
-    This is a stub implementation that currently returns the input text.
+    Render Markdown to HTML using a shared MarkdownIt instance.
     """
-    # TODO: Integrate markdown-it-py for real Markdown rendering.
-    return markdown_text
-
+    return _md.render(markdown_text)
