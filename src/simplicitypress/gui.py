@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
+from collections.abc import Callable
+import http.server
+import os
 import shutil
-import subprocess
 import sys
+import socketserver
+import threading
 import webbrowser
 
 from PySide6.QtCore import QObject, QThread, Qt, Signal
@@ -29,15 +33,20 @@ from PySide6.QtWidgets import (
     QFileDialog,
 )
 
+from simplicitypress.api import build_site_api, init_site
+from simplicitypress.core import ProgressEvent
+
 
 @dataclass
-class CommandSpec:
+class TaskSpec:
     """
-    Description of a command to run via subprocess.
+    Description of a background task to run in a worker thread.
     """
 
-    args: list[str]
-    cwd: Optional[Path] = None
+    label: str
+    func: Callable[..., Any]
+    args: tuple[Any, ...] = ()
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 class CommandWorker(QObject):
@@ -48,41 +57,22 @@ class CommandWorker(QObject):
     progress = Signal(str)
     finished = Signal(bool, str)
 
-    def __init__(self, spec: CommandSpec) -> None:
+    def __init__(self, spec: TaskSpec) -> None:
         super().__init__()
         self._spec = spec
 
     def run(self) -> None:
         """
-        Run the configured command, emitting progress and finished signals.
+        Run the configured task, emitting progress and finished signals.
         """
-        cmd_display = " ".join(self._spec.args)
-        self.progress.emit(f"$ {cmd_display}")
+        self.progress.emit(f"$ {self._spec.label}")
         try:
-            process = subprocess.Popen(
-                self._spec.args,
-                cwd=str(self._spec.cwd) if self._spec.cwd is not None else None,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
+            self._spec.func(*self._spec.args, **self._spec.kwargs)  # type: ignore[arg-type]
         except Exception as exc:  # noqa: BLE001
-            self.progress.emit(f"Failed to start command: {exc}")
-            self.finished.emit(False, "Failed to start command")
+            self.progress.emit(f"[ERROR] {exc!r}")
+            self.finished.emit(False, "Task failed. See log.")
             return
-
-        assert process.stdout is not None
-        for line in process.stdout:
-            self.progress.emit(line.rstrip("\n"))
-
-        process.wait()
-        success = process.returncode == 0
-        if success:
-            message = "Command completed successfully."
-        else:
-            message = f"Command failed with exit code {process.returncode}."
-        self.finished.emit(success, message)
+        self.finished.emit(True, "Task completed.")
 
 
 def is_simplicitypress_site(site_root: Path) -> bool:
@@ -110,7 +100,8 @@ class SimplicityPressWindow(QMainWindow):
         self._current_thread: Optional[QThread] = None
         self._current_worker: Optional[CommandWorker] = None
         self._command_running = False
-        self._serve_process: Optional[subprocess.Popen] = None
+        self._serve_thread: Optional[threading.Thread] = None
+        self._serve_stop_event: Optional[threading.Event] = None
         self._serve_port: int = 8000
 
         self._build_ui()
@@ -269,6 +260,13 @@ class SimplicityPressWindow(QMainWindow):
         self.log_edit.append(f"[{timestamp}] {text}")
         self.log_edit.moveCursor(QTextCursor.MoveOperation.End)
 
+    def _log_progress_event(self, event: ProgressEvent) -> None:
+        """
+        Append a log line derived from a ProgressEvent.
+        """
+        message = event.message or ""
+        self._append_log(f"[{event.stage.value}] {message}")
+
     def _set_busy(self, busy: bool) -> None:
         self._command_running = busy
         if busy:
@@ -292,7 +290,7 @@ class SimplicityPressWindow(QMainWindow):
         self.build_button.setEnabled(enabled and self.build_button.isEnabled())
         self.preview_button.setEnabled(enabled and self.preview_button.isEnabled())
 
-    def _start_command(self, spec: CommandSpec, status_message: str) -> None:
+    def _start_task(self, spec: TaskSpec, status_message: str) -> None:
         if self._command_running:
             QMessageBox.information(self, "Busy", "A command is already running.")
             return
@@ -304,6 +302,13 @@ class SimplicityPressWindow(QMainWindow):
         thread = QThread(self)
         worker = CommandWorker(spec)
         worker.moveToThread(thread)
+
+        if "progress_cb" in worker._spec.kwargs:
+            def _cb(event: ProgressEvent) -> None:
+                message = event.message or ""
+                worker.progress.emit(f"[{event.stage.value}] {message}")
+
+            worker._spec.kwargs["progress_cb"] = _cb
 
         thread.started.connect(worker.run)
         worker.progress.connect(self._append_log)
@@ -332,14 +337,15 @@ class SimplicityPressWindow(QMainWindow):
     def _on_init_clicked(self) -> None:
         root = self._current_site_root()
         if root is None:
-            QMessageBox.warning(self, "Invalid site root", "Please select a valid directory.")
+            QMessageBox.warning(self, "No site root", "Select a site root first.")
             return
 
-        spec = CommandSpec(
-            args=[sys.executable, "-m", "simplicitypress", "init", "--site-root", str(root)],
-            cwd=root,
+        spec = TaskSpec(
+            label=f"init --site-root {root}",
+            func=init_site,
+            args=(root,),
         )
-        self._start_command(spec, "Initializing site...")
+        self._start_task(spec, "Initializing site...")
 
     def _on_build_clicked(self) -> None:
         root = self._current_site_root()
@@ -375,36 +381,31 @@ class SimplicityPressWindow(QMainWindow):
                     )
                     return
 
-        args: list[str] = [sys.executable, "-m", "simplicitypress", "build", "--site-root", str(root)]
-        if output_dir:
-            args.extend(["--output", str(output_dir)])
-        if self.include_drafts_checkbox.isChecked():
-            args.append("--include-drafts")
+        include_drafts = self.include_drafts_checkbox.isChecked()
 
-        spec = CommandSpec(args=args, cwd=root)
-        self._start_command(spec, "Building site...")
+        spec = TaskSpec(
+            label=f"build --site-root {root}",
+            func=build_site_api,
+            args=(root,),
+            kwargs={
+                "output_dir": output_dir,
+                "include_drafts": include_drafts,
+                "progress_cb": None,
+            },
+        )
+        self._start_task(spec, "Building site...")
 
     def _on_preview_clicked(self) -> None:
-        # If a preview server is already running, offer to stop it.
-        if self._serve_process is not None and self._serve_process.poll() is None:
-            reply = QMessageBox.question(
-                self,
-                "Stop preview server",
-                "A preview server is currently running.\n\nStop preview server?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No,
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                try:
-                    self._serve_process.terminate()
-                    self._serve_process.wait(timeout=5)
-                except Exception:
-                    # Best-effort shutdown; ignore errors.
-                    pass
-                finally:
-                    self._serve_process = None
-                self.status_label.setText("Preview server stopped.")
-                self._append_log("Preview server stopped.")
+        # If a server is already running, stop it.
+        if self._serve_thread is not None and self._serve_thread.is_alive():
+            if self._serve_stop_event is not None:
+                self._serve_stop_event.set()
+            self._serve_thread.join(timeout=2)
+            self._serve_thread = None
+            self._serve_stop_event = None
+            self.preview_button.setText("Preview output")
+            self.status_label.setText("Preview server stopped.")
+            self._append_log("Preview server stopped.")
             return
 
         root = self._current_site_root()
@@ -417,40 +418,62 @@ class SimplicityPressWindow(QMainWindow):
             return
 
         output_dir = self._current_output_dir(root)
-
-        args: list[str] = [
-            sys.executable,
-            "-m",
-            "simplicitypress",
-            "serve",
-            "--site-root",
-            str(root),
-            "--port",
-            str(self._serve_port),
-        ]
-        if output_dir:
-            args.extend(
-                [
-                    "--output",
-                    str(output_dir),
-                    "--no-build",
-                ],
-            )
-
-        try:
-            self._append_log(f"Starting preview server: {' '.join(args)}")
-            process = subprocess.Popen(args, cwd=root)
-        except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(
+        if not output_dir.exists():
+            QMessageBox.warning(
                 self,
-                "Error",
-                f"Failed to start preview server:\n{exc}",
+                "Output not found",
+                "Output directory does not exist. Build the site first.",
             )
-            self._append_log(f"Failed to start preview server: {exc}")
             return
 
-        self._serve_process = process
         url = f"http://127.0.0.1:{self._serve_port}/"
+
+        stop_event = threading.Event()
+
+        def _serve() -> None:
+            os.chdir(output_dir)
+
+            class QuietHandler(http.server.SimpleHTTPRequestHandler):
+                """
+                Request handler that suppresses default stderr logging.
+
+                This avoids problems in PyInstaller windowed builds where sys.stderr
+                may not behave like a normal console stream.
+                """
+
+                def log_message(self, format: str, *args: object) -> None:  # type: ignore[override]
+                    # Suppress logging to stderr; optionally write to a file if desired.
+                    return
+
+            class QuietTCPServer(socketserver.TCPServer):
+                """
+                TCPServer that suppresses noisy tracebacks for common
+                connection issues (e.g., browser aborts).
+                """
+
+                # Allow immediate reuse of the port on restart.
+                allow_reuse_address = True
+
+                def handle_error(self, request, client_address):  # type: ignore[override]
+                    exc_type, exc, _ = sys.exc_info()
+                    # Ignore benign connection aborts and resets that browsers cause a lot.
+                    if isinstance(exc, (ConnectionAbortedError, ConnectionResetError, BrokenPipeError)):
+                        return
+                    # Fall back to the default behavior for unexpected errors.
+                    super().handle_error(request, client_address)
+
+            with QuietTCPServer(("", self._serve_port), QuietHandler) as httpd:
+                httpd.timeout = 1.0
+                while not stop_event.is_set():
+                    httpd.handle_request()
+
+        thread = threading.Thread(target=_serve, daemon=True)
+        thread.start()
+
+        self._serve_thread = thread
+        self._serve_stop_event = stop_event
+        self.preview_button.setText("Stop server")
+
         self.status_label.setText(f"Preview server running at {url}")
         self._append_log(f"Preview server running at {url}")
 
@@ -476,15 +499,13 @@ class SimplicityPressWindow(QMainWindow):
                 # Underlying C++ thread object may already be deleted.
                 pass
 
-        # Ensure preview server process is stopped on close.
-        if self._serve_process is not None and self._serve_process.poll() is None:
-            try:
-                self._serve_process.terminate()
-                self._serve_process.wait(timeout=5)
-            except Exception:
-                pass
-            finally:
-                self._serve_process = None
+        # Stop preview server if running.
+        if self._serve_thread is not None and self._serve_thread.is_alive():
+            if self._serve_stop_event is not None:
+                self._serve_stop_event.set()
+            self._serve_thread.join(timeout=2)
+            self._serve_thread = None
+            self._serve_stop_event = None
 
         event.accept()
 
