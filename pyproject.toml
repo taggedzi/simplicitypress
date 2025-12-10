@@ -54,3 +54,11 @@ simplicitypress = [
   "scaffold/static/css/*.css",
 ]
 
+# Coverage configuration: treat GUI and __main__ as manual/system-test code
+# and exclude them from coverage metrics.
+[tool.coverage.run]
+omit = [
+  "src/simplicitypress/gui.py",
+  "src/simplicitypress/__main__.py",
+]
+
