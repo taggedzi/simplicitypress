@@ -25,10 +25,10 @@ default_config: dict = {
     "build": {
         "posts_per_page": 10,
         "include_drafts": False,
+        "feed_items": 20,
     },
     "author": {
         "name": "",
         "email": "",
     },
 }
-

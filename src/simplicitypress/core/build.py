@@ -176,6 +176,18 @@ def build_site(
         }
         render_to_file(env, "tag.html", context, target)
 
+    # RSS/Atom-style feed (RSS 2.0 for now).
+    feed_items = int(config.build.get("feed_items", 20)) or 20
+    recent_posts = posts[:feed_items]
+    feed_target = config.paths.output_dir / "feed.xml"
+    feed_context = {
+        "site": config.site,
+        "author": config.author,
+        "posts": recent_posts,
+    }
+    render_to_file(env, "feed.xml", feed_context, feed_target)
+    emit(Stage.RENDERING_TEMPLATES, current=1, total=1, message="Rendering feed.xml")
+
     # Static assets.
     emit(Stage.COPYING_STATIC, current=0, total=1, message="Copying static assets")
     static_dir = config.paths.static_dir

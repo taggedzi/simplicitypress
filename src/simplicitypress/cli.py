@@ -1,5 +1,9 @@
 from pathlib import Path
 from textwrap import dedent
+from typing import Optional
+import http.server
+import os
+import socketserver
 
 import typer
 
@@ -12,7 +16,8 @@ def _print_progress(event: ProgressEvent) -> None:
     """
     Simple progress callback used by the CLI to report build stages.
     """
-    typer.echo(f"[{event.stage}] {event.current}/{event.total} {event.message}")
+    message = event.message or ""
+    typer.echo(f"[{event.stage}] {message}")
 
 
 @app.command()
@@ -152,6 +157,42 @@ def init(
               </footer>
             </body>
             </html>
+        """,
+        "feed.xml": """\
+            <?xml version="1.0" encoding="utf-8"?>
+            <rss version="2.0">
+              <channel>
+                <title>{{ site.title }}</title>
+                {% if site.subtitle %}
+                <description>{{ site.subtitle }}</description>
+                {% else %}
+                <description>{{ site.title }}</description>
+                {% endif %}
+                {% if site.base_url %}
+                <link>{{ site.base_url }}</link>
+                {% else %}
+                <link>http://localhost/</link>
+                {% endif %}
+                <language>{{ site.language or "en" }}</language>
+
+                {% for post in posts %}
+                <item>
+                  <title>{{ post.title }}</title>
+                  {% if site.base_url %}
+                  <link>{{ site.base_url.rstrip("/") }}{{ post.url }}</link>
+                  <guid>{{ site.base_url.rstrip("/") }}{{ post.url }}</guid>
+                  {% else %}
+                  <link>{{ post.url }}</link>
+                  <guid>{{ post.url }}</guid>
+                  {% endif %}
+                  <pubDate>{{ post.date.strftime("%a, %d %b %Y %H:%M:%S %z") if post.date.tzinfo else post.date.strftime("%a, %d %b %Y 00:00:00 +0000") }}</pubDate>
+                  {% if post.summary %}
+                  <description>{{ post.summary }}</description>
+                  {% endif %}
+                </item>
+                {% endfor %}
+              </channel>
+            </rss>
         """,
         "index.html": """\
             {% extends "base.html" %}
@@ -321,13 +362,36 @@ def build(
         Path("."),
         help="Path to the site root directory.",
     ),
-    ) -> None:
+    output: Optional[Path] = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Override the site's configured output directory.",
+    ),
+    include_drafts: bool = typer.Option(
+        False,
+        "--include-drafts",
+        help="Include draft posts in the build.",
+    ),
+) -> None:
     """
     Build the static site from the given site root.
     """
-    typer.echo(f"[build] Building site at: {site_root}")
-    config = load_config(site_root)
-    build_site(config, progress_cb=_print_progress)
+    try:
+        typer.echo(f"[build] Loading config from: {site_root}")
+        config = load_config(site_root)
+
+        # Apply CLI overrides.
+        if output is not None:
+            config.paths.output_dir = output.resolve()
+        if include_drafts:
+            config.build["include_drafts"] = True
+
+        typer.echo(f"[build] Writing output to: {config.paths.output_dir}")
+        build_site(config, progress_cb=_print_progress)
+    except Exception as exc:  # noqa: BLE001
+        typer.echo(f"Error during build: {exc}")
+        raise typer.Exit(code=1) from exc
 
 
 @app.command()
@@ -336,11 +400,57 @@ def serve(
         Path("."),
         help="Path to the site root directory.",
     ),
+    output: Optional[Path] = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output directory to serve (defaults to config.paths.output_dir).",
+    ),
+    port: int = typer.Option(
+        8000,
+        "--port",
+        "-p",
+        help="Port to serve on.",
+    ),
+    no_build: bool = typer.Option(
+        False,
+        "--no-build",
+        help="Serve without rebuilding the site first.",
+    ),
 ) -> None:
     """
     Serve the generated static site for local development.
     """
-    typer.echo(f"[serve] Would serve site from: {site_root}")
+    try:
+        typer.echo(f"[serve] Loading config from: {site_root}")
+        config = load_config(site_root)
+
+        if output is not None:
+            config.paths.output_dir = output.resolve()
+
+        if not no_build:
+            typer.echo("[serve] Building site before serving...")
+            build_site(config, progress_cb=_print_progress)
+
+        output_dir = config.paths.output_dir
+        if not output_dir.exists():
+            typer.echo(f"Output directory does not exist: {output_dir}")
+            raise typer.Exit(code=1)
+
+        typer.echo(f"[serve] Serving {output_dir} at http://localhost:{port}/")
+        typer.echo("[serve] Press Ctrl+C to stop.")
+
+        os.chdir(output_dir)
+
+        handler = http.server.SimpleHTTPRequestHandler
+        with socketserver.TCPServer(("", port), handler) as httpd:
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                typer.echo("\n[serve] Stopping server.")
+    except Exception as exc:  # noqa: BLE001
+        typer.echo(f"Error during serve: {exc}")
+        raise typer.Exit(code=1) from exc
 
 
 if __name__ == "__main__":
