@@ -97,6 +97,14 @@ def discover_content(config: Config) -> tuple[list[Post], list[Page]]:
         slug = metadata.get("slug") or path.stem
         url = f"/{slug}/"
 
+        show_in_nav = bool(metadata.get("show_in_nav", False))
+        nav_title = metadata.get("nav_title")
+        nav_order_raw = metadata.get("nav_order", 1000)
+        try:
+            nav_order = int(nav_order_raw)
+        except (TypeError, ValueError):
+            nav_order = 1000
+
         pages.append(
             Page(
                 title=str(title),
@@ -104,8 +112,10 @@ def discover_content(config: Config) -> tuple[list[Post], list[Page]]:
                 content_html=body_html,
                 source_path=path,
                 url=url,
+                show_in_nav=show_in_nav,
+                nav_title=str(nav_title) if nav_title is not None else None,
+                nav_order=nav_order,
             ),
         )
 
     return posts, pages
-

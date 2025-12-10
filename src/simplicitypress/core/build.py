@@ -6,7 +6,7 @@ from typing import Callable, Optional
 
 from .content import discover_content
 from .fs import copy_static_tree
-from .models import Config, Post, ProgressEvent, Stage
+from .models import Config, Page, Post, ProgressEvent, Stage
 from .render import create_environment, render_to_file
 
 
@@ -31,6 +31,26 @@ def _slugify_tag(tag: str) -> str:
     tag = tag.strip().lower()
     tag = tag.replace(" ", "-")
     return re.sub(r"[^a-z0-9_-]", "", tag)
+
+
+def _build_nav_items(pages: list[Page]) -> list[dict[str, object]]:
+    """
+    Build a list of navigation items from pages that opt into the nav.
+    """
+    items: list[dict[str, object]] = []
+    for page in pages:
+        if not page.show_in_nav:
+            continue
+        title = page.nav_title or page.title
+        items.append(
+            {
+                "title": title,
+                "url": page.url,
+                "order": page.nav_order,
+            },
+        )
+    items.sort(key=lambda item: (item["order"], str(item["title"]).lower()))
+    return items
 
 
 def build_site(
@@ -74,6 +94,9 @@ def build_site(
     # Build tag index.
     tag_index = _build_tag_index(posts)
 
+    # Build navigation items from pages.
+    nav_items = _build_nav_items(pages)
+
     # Pagination for the home page.
     posts_per_page = int(config.build.get("posts_per_page", 10)) or 10
     total_pages = max(1, ceil(len(posts) / posts_per_page))
@@ -83,6 +106,7 @@ def build_site(
     base_context = {
         "site": config.site,
         "author": config.author,
+        "nav_items": nav_items,
     }
 
     emit(Stage.RENDERING_TEMPLATES, current=0, total=1, message="Rendering templates")

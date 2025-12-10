@@ -60,6 +60,9 @@ class Post:
 class Page:
     """
     Represents a single static page with rendered HTML content.
+
+    The navigation-related fields allow pages to opt into the site's
+    top-level navigation bar.
     """
 
     title: str
@@ -67,6 +70,9 @@ class Page:
     content_html: str
     source_path: Path
     url: str
+    show_in_nav: bool = False
+    nav_title: str | None = None
+    nav_order: int = 1000
 
 
 class Stage(str, Enum):

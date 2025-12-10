@@ -147,6 +147,11 @@ def init(
                 <nav>
                   <a href="/">Home</a>
                   <a href="/tags/">Tags</a>
+                  {% if nav_items %}
+                    {% for item in nav_items %}
+                      <a href="{{ item.url }}">{{ item.title }}</a>
+                    {% endfor %}
+                  {% endif %}
                 </nav>
               </header>
               <main>
@@ -332,6 +337,10 @@ def init(
                 """\
                 +++
                 title = "About"
+                slug = "about"
+                show_in_nav = true
+                nav_title = "About"
+                nav_order = 10
                 +++
                 This is an example *About* page created by SimplicityPress init.
                 """,
