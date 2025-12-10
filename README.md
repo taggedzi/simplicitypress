@@ -201,3 +201,7 @@ After building, navigation might look like:
 ```
 
 Pages without `show_in_nav = true` remain accessible but unlisted.
+
+## License
+
+SimplicityPress is released under the [MIT License](./LICENSE).

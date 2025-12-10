@@ -5,12 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "simplicitypress"
 version = "0.1.0"
-description = "A simple, library-first static site generator for posts and pages."
+description = "A simple, static site generator for posts and pages, using Markdown and converting to HTML."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 authors = [
-  { name = "Your Name" },
+    { name = "Matthew Craig", email = "taggedzi.mpc@gmail.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
 ]
 dependencies = [
   "typer>=0.12",
