@@ -1,5 +1,6 @@
-def test_import_and_version() -> None:
-    import simplicitypress
+from simplicitypress import __version__
 
-    assert simplicitypress.__version__ == "0.1.0"
+
+def test_version() -> None:
+    assert __version__ == "0.1.0"
 
