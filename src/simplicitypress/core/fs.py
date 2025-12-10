@@ -7,10 +7,10 @@ def ensure_directory(path: Path) -> None:
     """
     Ensure that the given directory exists, creating it if necessary.
 
-    This is a stub implementation and may be expanded to handle
-    permissions, logging, and error reporting.
+    This implementation creates parent directories as needed and
+    can be extended later to handle permissions, logging, and
+    error reporting concerns.
     """
-    # TODO: Implement more robust directory creation and error handling.
     path.mkdir(parents=True, exist_ok=True)
 
 
@@ -22,4 +22,3 @@ def copy_static_tree(static_dir: Path, output_static_dir: Path) -> None:
     """
     # TODO: Implement recursive copying of static assets.
     raise NotImplementedError("Static asset copying is not implemented yet.")
-

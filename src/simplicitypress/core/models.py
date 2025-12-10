@@ -25,6 +25,10 @@ class SitePaths:
 class Config:
     """
     Top-level configuration for a SimplicityPress site.
+
+    Values are loaded from ``site.toml`` in the site root and
+    merged over a built-in set of defaults. Nested mapping keys
+    in the user configuration override the corresponding defaults.
     """
 
     site: dict
@@ -87,4 +91,3 @@ class ProgressEvent:
     current: int
     total: int
     message: str = ""
-
