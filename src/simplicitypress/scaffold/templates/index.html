@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <section class="sp-section">
+    <h1 class="sp-h1">Latest posts</h1>
+
+    {% if posts %}
+      <ul class="sp-post-list" aria-label="Blog posts">
+        {% for post in posts %}
+          <li class="sp-post-card">
+            <article>
+              <h2 class="sp-post-title">
+                <a href="{{ post.url }}">{{ post.title }}</a>
+              </h2>
+              <p class="sp-post-meta">
+                <time datetime="{{ post.date.isoformat() }}">{{ post.date.date() }}</time>
+              </p>
+              {% if post.summary %}
+                <p class="sp-post-summary">{{ post.summary }}</p>
+              {% endif %}
+              {% if post.tags %}
+                <p class="sp-post-tags">
+                  {% for tag in post.tags %}
+                    <a href="/tags/{{ tag|lower|replace(' ', '-') }}/" class="sp-tag-link">
+                      {{ tag }}
+                    </a>
+                  {% endfor %}
+                </p>
+              {% endif %}
+            </article>
+          </li>
+        {% endfor %}
+      </ul>
+
+      {% if total_pages > 1 %}
+        <nav class="sp-pagination" aria-label="Pagination">
+          {% if prev_url %}
+            <a href="{{ prev_url }}" class="sp-button sp-button-ghost">&laquo; Newer posts</a>
+          {% endif %}
+          {% if next_url %}
+            <a href="{{ next_url }}" class="sp-button sp-button-ghost">Older posts &raquo;</a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <p>No posts yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}
+

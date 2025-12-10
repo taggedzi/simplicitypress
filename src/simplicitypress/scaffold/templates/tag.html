@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <section class="sp-section">
+    <h1 class="sp-h1">Posts tagged "{{ tag }}"</h1>
+
+    {% if posts %}
+      <ul class="sp-post-list">
+        {% for post in posts %}
+          <li class="sp-post-card">
+            <article>
+              <h2 class="sp-post-title">
+                <a href="{{ post.url }}">{{ post.title }}</a>
+              </h2>
+              <p class="sp-post-meta">
+                <time datetime="{{ post.date.isoformat() }}">{{ post.date.date() }}</time>
+              </p>
+              {% if post.summary %}
+                <p class="sp-post-summary">{{ post.summary }}</p>
+              {% endif %}
+            </article>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No posts for this tag yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}
+

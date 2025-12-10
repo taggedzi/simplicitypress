@@ -1,8 +1,10 @@
 from pathlib import Path
 from textwrap import dedent
 from typing import Optional
+from importlib.resources import files
 import http.server
 import os
+import shutil
 import socketserver
 
 import typer
@@ -18,6 +20,39 @@ def _print_progress(event: ProgressEvent) -> None:
     """
     message = event.message or ""
     typer.echo(f"[{event.stage}] {message}")
+
+
+def _copy_scaffold(site_root: Path) -> None:
+    """
+    Copy default templates and static files from the packaged scaffold
+    into the new site's templates/ and static/ directories.
+    Does not overwrite existing files.
+    """
+    scaffold_root = files("simplicitypress.scaffold")
+    templates_src = scaffold_root / "templates"
+    static_src = scaffold_root / "static"
+
+    templates_dest = site_root / "templates"
+    static_dest = site_root / "static"
+
+    templates_dest.mkdir(parents=True, exist_ok=True)
+    static_dest.mkdir(parents=True, exist_ok=True)
+
+    # Copy templates
+    for entry in templates_src.iterdir():
+        if entry.is_file():
+            target = templates_dest / entry.name
+            if not target.exists():
+                shutil.copy2(entry, target)
+
+    # Copy static tree recursively
+    for entry in static_src.rglob("*"):
+        if entry.is_file():
+            relative = entry.relative_to(static_src)
+            target = static_dest / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if not target.exists():
+                shutil.copy2(entry, target)
 
 
 @app.command()
@@ -36,11 +71,8 @@ def init(
     content_dir = site_root / "content"
     posts_dir = content_dir / "posts"
     pages_dir = content_dir / "pages"
-    templates_dir = site_root / "templates"
-    static_dir = site_root / "static"
-    css_dir = static_dir / "css"
 
-    for directory in (content_dir, posts_dir, pages_dir, templates_dir, css_dir):
+    for directory in (content_dir, posts_dir, pages_dir):
         directory.mkdir(parents=True, exist_ok=True)
 
     site_toml = site_root / "site.toml"
@@ -78,236 +110,8 @@ def init(
         )
         typer.echo("Created default site.toml")
 
-    # Basic CSS
-    css_path = css_dir / "style.css"
-    if not css_path.exists():
-        css_path.write_text(
-            dedent(
-                """\
-                body {
-                  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-                  margin: 0;
-                  padding: 0;
-                  background: #f5f5f5;
-                  color: #222;
-                }
-
-                main {
-                  max-width: 42rem;
-                  margin: 2rem auto;
-                  padding: 0 1rem 3rem;
-                  background: #ffffff;
-                  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-                }
-
-                header, footer {
-                  max-width: 42rem;
-                  margin: 0 auto;
-                  padding: 1rem;
-                }
-
-                header h1 a {
-                  text-decoration: none;
-                  color: inherit;
-                }
-
-                nav a {
-                  margin-right: 1rem;
-                }
-
-                .content {
-                  margin-top: 1.5rem;
-                }
-
-                .pagination a {
-                  margin-right: 1rem;
-                }
-                """,
-            ),
-            encoding="utf-8",
-        )
-        typer.echo("Created static/css/style.css")
-
-    # Templates
-    templates = {
-        "base.html": """\
-            <!doctype html>
-            <html lang="{{ site.language | default('en') }}">
-            <head>
-              <meta charset="utf-8">
-              <title>{{ site.title }}{% if site.subtitle %} - {{ site.subtitle }}{% endif %}</title>
-              <link rel="stylesheet" href="/static/css/style.css">
-            </head>
-            <body>
-              <header>
-                <h1><a href="/">{{ site.title }}</a></h1>
-                {% if site.subtitle %}
-                  <p>{{ site.subtitle }}</p>
-                {% endif %}
-                <nav>
-                  <a href="/">Home</a>
-                  <a href="/tags/">Tags</a>
-                  {% if nav_items %}
-                    {% for item in nav_items %}
-                      <a href="{{ item.url }}">{{ item.title }}</a>
-                    {% endfor %}
-                  {% endif %}
-                </nav>
-              </header>
-              <main>
-                {% block content %}{% endblock %}
-              </main>
-              <footer>
-                <p>Powered by SimplicityPress.</p>
-              </footer>
-            </body>
-            </html>
-        """,
-        "feed.xml": """\
-            <?xml version="1.0" encoding="utf-8"?>
-            <rss version="2.0">
-              <channel>
-                <title>{{ site.title }}</title>
-                {% if site.subtitle %}
-                <description>{{ site.subtitle }}</description>
-                {% else %}
-                <description>{{ site.title }}</description>
-                {% endif %}
-                {% if site.base_url %}
-                <link>{{ site.base_url }}</link>
-                {% else %}
-                <link>http://localhost/</link>
-                {% endif %}
-                <language>{{ site.language or "en" }}</language>
-
-                {% for post in posts %}
-                <item>
-                  <title>{{ post.title }}</title>
-                  {% if site.base_url %}
-                  <link>{{ site.base_url.rstrip("/") }}{{ post.url }}</link>
-                  <guid>{{ site.base_url.rstrip("/") }}{{ post.url }}</guid>
-                  {% else %}
-                  <link>{{ post.url }}</link>
-                  <guid>{{ post.url }}</guid>
-                  {% endif %}
-                  <pubDate>{{ post.date.strftime("%a, %d %b %Y %H:%M:%S %z") if post.date.tzinfo else post.date.strftime("%a, %d %b %Y 00:00:00 +0000") }}</pubDate>
-                  {% if post.summary %}
-                  <description>{{ post.summary }}</description>
-                  {% endif %}
-                </item>
-                {% endfor %}
-              </channel>
-            </rss>
-        """,
-        "index.html": """\
-            {% extends "base.html" %}
-            {% block content %}
-              <h2>Latest posts</h2>
-              {% if posts %}
-                <ul>
-                  {% for post in posts %}
-                    <li>
-                      <article>
-                        <h3><a href="{{ post.url }}">{{ post.title }}</a></h3>
-                        <p><small>{{ post.date.date() }}</small></p>
-                        {% if post.summary %}
-                          <p>{{ post.summary }}</p>
-                        {% endif %}
-                      </article>
-                    </li>
-                  {% endfor %}
-                </ul>
-
-                <nav class="pagination">
-                  {% if prev_url %}
-                    <a href="{{ prev_url }}">&laquo; Newer posts</a>
-                  {% endif %}
-                  {% if next_url %}
-                    <a href="{{ next_url }}">Older posts &raquo;</a>
-                  {% endif %}
-                </nav>
-              {% else %}
-                <p>No posts yet.</p>
-              {% endif %}
-            {% endblock %}
-        """,
-        "post.html": """\
-            {% extends "base.html" %}
-            {% block content %}
-              <article>
-                <h2>{{ post.title }}</h2>
-                <p><small>{{ post.date.date() }}</small></p>
-                {% if post.tags %}
-                  <p>
-                    Tags:
-                    {% for tag in post.tags %}
-                      <a href="/tags/{{ tag|lower|replace(' ', '-') }}/">{{ tag }}</a>
-                      {% if not loop.last %}, {% endif %}
-                    {% endfor %}
-                  </p>
-                {% endif %}
-                <div class="content">
-                  {{ post.content_html | safe }}
-                </div>
-              </article>
-            {% endblock %}
-        """,
-        "page.html": """\
-            {% extends "base.html" %}
-            {% block content %}
-              <article>
-                <h2>{{ page.title }}</h2>
-                <div class="content">
-                  {{ page.content_html | safe }}
-                </div>
-              </article>
-            {% endblock %}
-        """,
-        "tags.html": """\
-            {% extends "base.html" %}
-            {% block content %}
-              <h2>Tags</h2>
-              {% if tags %}
-                <ul>
-                  {% for tag in tags %}
-                    <li>
-                      <a href="{{ tag.url }}">{{ tag.name }}</a> ({{ tag.count }})
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <p>No tags yet.</p>
-              {% endif %}
-            {% endblock %}
-        """,
-        "tag.html": """\
-            {% extends "base.html" %}
-            {% block content %}
-              <h2>Posts tagged "{{ tag }}"</h2>
-              {% if posts %}
-                <ul>
-                  {% for post in posts %}
-                    <li>
-                      <h3><a href="{{ post.url }}">{{ post.title }}</a></h3>
-                      <p><small>{{ post.date.date() }}</small></p>
-                      {% if post.summary %}
-                        <p>{{ post.summary }}</p>
-                      {% endif %}
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <p>No posts for this tag yet.</p>
-              {% endif %}
-            {% endblock %}
-        """,
-    }
-
-    for name, content in templates.items():
-        path = templates_dir / name
-        if not path.exists():
-            path.write_text(dedent(content), encoding="utf-8")
-            typer.echo(f"Created template: {path.relative_to(site_root)}")
+    # Copy scaffold templates and static assets
+    _copy_scaffold(site_root)
 
     # Sample content
     sample_post = posts_dir / "example-post.md"
