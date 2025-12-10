@@ -28,6 +28,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0",
+  "pytest-cov>=4.0",
   "ruff>=0.5",
   "mypy>=1.10",
   "build",
@@ -51,5 +52,13 @@ simplicitypress = [
   "scaffold/templates/*.html",
   "scaffold/templates/*.xml",
   "scaffold/static/css/*.css",
+]
+
+# Coverage configuration: treat GUI and __main__ as manual/system-test code
+# and exclude them from coverage metrics.
+[tool.coverage.run]
+omit = [
+  "src/simplicitypress/gui.py",
+  "src/simplicitypress/__main__.py",
 ]
 

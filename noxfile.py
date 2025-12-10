@@ -18,7 +18,11 @@ PYTHON_VERSIONS = ["3.11", "3.12", "3.13"]
 def tests(session: nox.Session) -> None:
     """Run the test suite with pytest using the current interpreter."""
     session.install(".[dev]")
-    session.run("pytest")
+    session.run(
+        "pytest",
+        "--cov=simplicitypress",
+        "--cov-report=term-missing",
+    )
 
 
 @nox.session
