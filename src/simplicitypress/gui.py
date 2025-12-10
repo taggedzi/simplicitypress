@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Any
@@ -46,11 +46,7 @@ class TaskSpec:
     label: str
     func: Callable[..., Any]
     args: tuple[Any, ...] = ()
-    kwargs: dict[str, Any] | None = None
-
-    def __post_init__(self) -> None:
-        if self.kwargs is None:
-            self.kwargs = {}
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 class CommandWorker(QObject):
