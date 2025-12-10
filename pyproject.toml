@@ -33,6 +33,7 @@ dev = [
   "build",
   "twine",
   "nox",
+  "pyinstaller>=6.0",
 ]
 
 [project.scripts]

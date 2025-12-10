@@ -1,16 +1,14 @@
 from pathlib import Path
 from textwrap import dedent
 from typing import Optional
-from importlib.resources import files
-from importlib.resources.abc import Traversable
 import http.server
 import os
-import shutil
 import socketserver
 
 import typer
 
-from .core import ProgressEvent, build_site, load_config
+from .api import build_site_api, init_site, serve_site
+from .core import ProgressEvent
 
 app = typer.Typer(help="SimplicityPress static site generator CLI.")
 
@@ -21,49 +19,6 @@ def _print_progress(event: ProgressEvent) -> None:
     """
     message = event.message or ""
     typer.echo(f"[{event.stage}] {message}")
-
-
-def _copy_scaffold(site_root: Path) -> None:
-    """
-    Copy default templates and static files from the packaged scaffold
-    into the new site's templates/ and static/ directories.
-    Does not overwrite existing files.
-    """
-    scaffold_root = files("simplicitypress.scaffold")
-    templates_src = scaffold_root / "templates"
-    static_src = scaffold_root / "static"
-
-    templates_dest = site_root / "templates"
-    static_dest = site_root / "static"
-
-    templates_dest.mkdir(parents=True, exist_ok=True)
-    static_dest.mkdir(parents=True, exist_ok=True)
-
-    def _copy_file(src: Traversable, dst: Path) -> None:
-        with src.open("rb") as src_f, dst.open("wb") as dst_f:
-            shutil.copyfileobj(src_f, dst_f)
-
-    # Copy templates
-    for entry in templates_src.iterdir():
-        if entry.is_file():
-            target = templates_dest / entry.name
-            if not target.exists():
-                _copy_file(entry, target)
-
-    # Copy static tree recursively
-    def _copy_static(src: Traversable, dst_root: Path) -> None:
-        for child in src.iterdir():
-            if child.is_dir():
-                child_dest = dst_root / child.name
-                child_dest.mkdir(parents=True, exist_ok=True)
-                _copy_static(child, child_dest)
-            elif child.is_file():
-                target = dst_root / child.name
-                target.parent.mkdir(parents=True, exist_ok=True)
-                if not target.exists():
-                    _copy_file(child, target)
-
-    _copy_static(static_src, static_dest)
 
 
 @app.command()
@@ -77,91 +32,30 @@ def init(
     Initialize a new SimplicityPress site at the given path.
     """
     typer.echo(f"[init] Initializing site at: {site_root}")
-    site_root.mkdir(parents=True, exist_ok=True)
-
-    content_dir = site_root / "content"
-    posts_dir = content_dir / "posts"
-    pages_dir = content_dir / "pages"
-
-    for directory in (content_dir, posts_dir, pages_dir):
-        directory.mkdir(parents=True, exist_ok=True)
 
     site_toml = site_root / "site.toml"
-    if site_toml.exists():
+    sample_post = site_root / "content" / "posts" / "example-post.md"
+    sample_page = site_root / "content" / "pages" / "about.md"
+
+    site_toml_existed = site_toml.exists()
+    sample_post_existed = sample_post.exists()
+    sample_page_existed = sample_page.exists()
+
+    try:
+        init_site(site_root)
+    except Exception as exc:  # noqa: BLE001
+        typer.echo(f"Error during init: {exc}")
+        raise typer.Exit(code=1) from exc
+
+    if site_toml_existed:
         typer.echo("site.toml already exists; leaving it unchanged.")
     else:
-        site_toml.write_text(
-            dedent(
-                """\
-                [site]
-                title = "My SimplicityPress Site"
-                subtitle = ""
-                base_url = ""
-                language = "en"
-                timezone = "UTC"
-
-                [paths]
-                content_dir = "content"
-                posts_dir = "content/posts"
-                pages_dir = "content/pages"
-                templates_dir = "templates"
-                static_dir = "static"
-                output_dir = "output"
-
-                [build]
-                posts_per_page = 10
-                include_drafts = false
-
-                [author]
-                name = ""
-                email = ""
-                """,
-            ),
-            encoding="utf-8",
-        )
         typer.echo("Created default site.toml")
 
-    # Copy scaffold templates and static assets
-    _copy_scaffold(site_root)
-
-    # Sample content
-    sample_post = posts_dir / "example-post.md"
-    if not sample_post.exists():
-        sample_post.write_text(
-            dedent(
-                """\
-                +++
-                title = "Example Post"
-                date = "2024-01-01"
-                tags = ["example", "intro"]
-                summary = "This is an example post created by SimplicityPress init."
-                +++
-                Welcome to **SimplicityPress**!
-
-                This is your first post. Edit or delete it, then start writing.
-                """,
-            ),
-            encoding="utf-8",
-        )
+    if not sample_post_existed and sample_post.exists():
         typer.echo("Created sample post at content/posts/example-post.md")
 
-    sample_page = pages_dir / "about.md"
-    if not sample_page.exists():
-        sample_page.write_text(
-            dedent(
-                """\
-                +++
-                title = "About"
-                slug = "about"
-                show_in_nav = true
-                nav_title = "About"
-                nav_order = 10
-                +++
-                This is an example *About* page created by SimplicityPress init.
-                """,
-            ),
-            encoding="utf-8",
-        )
+    if not sample_page_existed and sample_page.exists():
         typer.echo("Created sample page at content/pages/about.md")
 
     typer.echo("Initialization complete.")
@@ -202,17 +96,13 @@ def build(
     Build the static site from the given site root.
     """
     try:
-        typer.echo(f"[build] Loading config from: {site_root}")
-        config = load_config(site_root)
-
-        # Apply CLI overrides.
-        if output is not None:
-            config.paths.output_dir = output.resolve()
-        if include_drafts:
-            config.build["include_drafts"] = True
-
-        typer.echo(f"[build] Writing output to: {config.paths.output_dir}")
-        build_site(config, progress_cb=_print_progress)
+        typer.echo(f"[build] Building site at: {site_root}")
+        build_site_api(
+            site_root=site_root,
+            output_dir=output,
+            include_drafts=include_drafts,
+            progress_cb=_print_progress,
+        )
     except Exception as exc:  # noqa: BLE001
         typer.echo(f"Error during build: {exc}")
         raise typer.Exit(code=1) from exc
@@ -246,32 +136,13 @@ def serve(
     Serve the generated static site for local development.
     """
     try:
-        typer.echo(f"[serve] Loading config from: {site_root}")
-        config = load_config(site_root)
-
-        if output is not None:
-            config.paths.output_dir = output.resolve()
-
-        if not no_build:
-            typer.echo("[serve] Building site before serving...")
-            build_site(config, progress_cb=_print_progress)
-
-        output_dir = config.paths.output_dir
-        if not output_dir.exists():
-            typer.echo(f"Output directory does not exist: {output_dir}")
-            raise typer.Exit(code=1)
-
-        typer.echo(f"[serve] Serving {output_dir} at http://localhost:{port}/")
-        typer.echo("[serve] Press Ctrl+C to stop.")
-
-        os.chdir(output_dir)
-
-        handler = http.server.SimpleHTTPRequestHandler
-        with socketserver.TCPServer(("", port), handler) as httpd:
-            try:
-                httpd.serve_forever()
-            except KeyboardInterrupt:
-                typer.echo("\n[serve] Stopping server.")
+        typer.echo(f"[serve] Serving site at: {site_root}")
+        serve_site(
+            site_root=site_root,
+            output_dir=output,
+            port=port,
+            build_first=not no_build,
+        )
     except Exception as exc:  # noqa: BLE001
         typer.echo(f"Error during serve: {exc}")
         raise typer.Exit(code=1) from exc
