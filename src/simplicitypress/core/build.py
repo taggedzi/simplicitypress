@@ -103,7 +103,7 @@ def build_site(
 
     env = create_environment(config.paths.templates_dir)
 
-    base_context = {
+    base_context: dict[str, object] = {
         "site": config.site,
         "author": config.author,
         "nav_items": nav_items,
@@ -134,7 +134,7 @@ def build_site(
         else:
             next_url = None
 
-        context = {
+        context: dict[str, object] = {
             **base_context,
             "posts": posts_page,
             "page_number": page_number,
@@ -204,7 +204,7 @@ def build_site(
     feed_items = int(config.build.get("feed_items", 20)) or 20
     recent_posts = posts[:feed_items]
     feed_target = config.paths.output_dir / "feed.xml"
-    feed_context = {
+    feed_context: dict[str, object] = {
         "site": config.site,
         "author": config.author,
         "posts": recent_posts,

@@ -2,6 +2,7 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Optional
 from importlib.resources import files
+from importlib.resources.abc import Traversable
 import http.server
 import os
 import shutil
@@ -38,21 +39,31 @@ def _copy_scaffold(site_root: Path) -> None:
     templates_dest.mkdir(parents=True, exist_ok=True)
     static_dest.mkdir(parents=True, exist_ok=True)
 
+    def _copy_file(src: Traversable, dst: Path) -> None:
+        with src.open("rb") as src_f, dst.open("wb") as dst_f:
+            shutil.copyfileobj(src_f, dst_f)
+
     # Copy templates
     for entry in templates_src.iterdir():
         if entry.is_file():
             target = templates_dest / entry.name
             if not target.exists():
-                shutil.copy2(entry, target)
+                _copy_file(entry, target)
 
     # Copy static tree recursively
-    for entry in static_src.rglob("*"):
-        if entry.is_file():
-            relative = entry.relative_to(static_src)
-            target = static_dest / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            if not target.exists():
-                shutil.copy2(entry, target)
+    def _copy_static(src: Traversable, dst_root: Path) -> None:
+        for child in src.iterdir():
+            if child.is_dir():
+                child_dest = dst_root / child.name
+                child_dest.mkdir(parents=True, exist_ok=True)
+                _copy_static(child, child_dest)
+            elif child.is_file():
+                target = dst_root / child.name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if not target.exists():
+                    _copy_file(child, target)
+
+    _copy_static(static_src, static_dest)
 
 
 @app.command()

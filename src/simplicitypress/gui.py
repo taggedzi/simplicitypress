@@ -181,7 +181,10 @@ class SimplicityPressWindow(QMainWindow):
         # Log window
         self.log_edit = QTextEdit()
         self.log_edit.setReadOnly(True)
-        self.log_edit.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.log_edit.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Expanding,
+        )
 
         main_layout.addLayout(site_root_layout)
         main_layout.addLayout(output_layout)
@@ -264,12 +267,12 @@ class SimplicityPressWindow(QMainWindow):
     def _append_log(self, text: str) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")
         self.log_edit.append(f"[{timestamp}] {text}")
-        self.log_edit.moveCursor(QTextCursor.End)
+        self.log_edit.moveCursor(QTextCursor.MoveOperation.End)
 
     def _set_busy(self, busy: bool) -> None:
         self._command_running = busy
         if busy:
-            QApplication.setOverrideCursor(Qt.WaitCursor)
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
             self.progress_bar.setRange(0, 0)
         else:
             QApplication.restoreOverrideCursor()
@@ -357,10 +360,10 @@ class SimplicityPressWindow(QMainWindow):
                     self,
                     "Clear output directory",
                     f"This will delete everything under:\n{output_dir}\n\nAre you sure?",
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.No,
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
                 )
-                if reply != QMessageBox.Yes:
+                if reply != QMessageBox.StandardButton.Yes:
                     return
                 try:
                     shutil.rmtree(output_dir)
@@ -388,10 +391,10 @@ class SimplicityPressWindow(QMainWindow):
                 self,
                 "Stop preview server",
                 "A preview server is currently running.\n\nStop preview server?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
             )
-            if reply == QMessageBox.Yes:
+            if reply == QMessageBox.StandardButton.Yes:
                 try:
                     self._serve_process.terminate()
                     self._serve_process.wait(timeout=5)
