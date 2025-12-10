@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <title>{{ site.title }}</title>
+    {% if site.subtitle %}
+    <description>{{ site.subtitle }}</description>
+    {% else %}
+    <description>{{ site.title }}</description>
+    {% endif %}
+    {% if site.base_url %}
+    <link>{{ site.base_url }}</link>
+    {% else %}
+    <link>http://localhost/</link>
+    {% endif %}
+    <language>{{ site.language or "en" }}</language>
+
+    {% for post in posts %}
+    <item>
+      <title>{{ post.title }}</title>
+      {% if site.base_url %}
+      <link>{{ site.base_url.rstrip("/") }}{{ post.url }}</link>
+      <guid>{{ site.base_url.rstrip("/") }}{{ post.url }}</guid>
+      {% else %}
+      <link>{{ post.url }}</link>
+      <guid>{{ post.url }}</guid>
+      {% endif %}
+      <pubDate>{{ post.date.strftime("%a, %d %b %Y %H:%M:%S %z") if post.date.tzinfo else post.date.strftime("%a, %d %b %Y 00:00:00 +0000") }}</pubDate>
+      {% if post.summary %}
+      <description>{{ post.summary }}</description>
+      {% endif %}
+    </item>
+    {% endfor %}
+  </channel>
+</rss>
+

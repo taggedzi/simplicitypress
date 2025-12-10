@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="{{ site.language | default('en') }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>
+    {{ site.title }}
+    {% if site.subtitle %} — {{ site.subtitle }}{% endif %}
+  </title>
+  <link rel="stylesheet" href="{{ '/static/css/style.css' }}">
+</head>
+<body>
+  <a class="sp-skip-link" href="#main-content">Skip to content</a>
+
+  <header class="sp-header">
+    <div class="sp-container sp-header-inner">
+      <div class="sp-brand">
+        <a href="/" class="sp-site-title">{{ site.title }}</a>
+        {% if site.subtitle %}
+          <p class="sp-site-subtitle">{{ site.subtitle }}</p>
+        {% endif %}
+      </div>
+      <nav class="sp-nav" aria-label="Main navigation">
+        <a href="/" class="sp-nav-link">Home</a>
+        <a href="/tags/" class="sp-nav-link">Tags</a>
+        {% if nav_items %}
+          {% for item in nav_items %}
+            <a href="{{ item.url }}" class="sp-nav-link">{{ item.title }}</a>
+          {% endfor %}
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-content" class="sp-main">
+    <div class="sp-container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="sp-footer">
+    <div class="sp-container sp-footer-inner">
+      <p class="sp-footer-text">
+        &copy; {{ site.title }}{% if author.name %} — {{ author.name }}{% endif %}.
+        Powered by <span class="sp-footer-link">SimplicityPress</span>.
+      </p>
+    </div>
+  </footer>
+</body>
+</html>
+

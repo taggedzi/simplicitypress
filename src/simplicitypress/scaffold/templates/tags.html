@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <section class="sp-section">
+    <h1 class="sp-h1">Tags</h1>
+
+    {% if tags %}
+      <ul class="sp-tag-list">
+        {% for tag in tags %}
+          <li class="sp-tag-list-item">
+            <a href="{{ tag.url }}" class="sp-tag-link">
+              {{ tag.name }}
+            </a>
+            <span class="sp-tag-count">{{ tag.count }} post{% if tag.count != 1 %}s{% endif %}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No tags yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}
+

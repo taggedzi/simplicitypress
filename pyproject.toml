@@ -42,3 +42,10 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+simplicitypress = [
+  "scaffold/templates/*.html",
+  "scaffold/templates/*.xml",
+  "scaffold/static/css/*.css",
+]
+
