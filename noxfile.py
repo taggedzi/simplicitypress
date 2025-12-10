@@ -11,12 +11,10 @@ from __future__ import annotations
 
 import nox
 
-PYTHON_VERSIONS = ["3.11", "3.12", "3.13"]
 
-
-@nox.session(python=PYTHON_VERSIONS)
+@nox.session
 def tests(session: nox.Session) -> None:
-    """Run the test suite with pytest."""
+    """Run the test suite with pytest using the current interpreter."""
     session.install(".[dev]")
     session.run("pytest")
 
