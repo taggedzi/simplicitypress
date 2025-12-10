@@ -77,6 +77,7 @@ def build_exe(session: nox.Session) -> None:
         "--noconfirm",
         "--clean",
         "--windowed",
+        # "--console",  # <-- For debug of binary
         "--name",
         "SimplicityPress",
         "--collect-data",

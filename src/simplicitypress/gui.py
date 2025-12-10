@@ -33,8 +33,8 @@ from PySide6.QtWidgets import (
     QFileDialog,
 )
 
-from .api import build_site_api, init_site
-from .core import ProgressEvent
+from simplicitypress.api import build_site_api, init_site
+from simplicitypress.core import ProgressEvent
 
 
 @dataclass
@@ -437,21 +437,36 @@ class SimplicityPressWindow(QMainWindow):
         def _serve() -> None:
             os.chdir(output_dir)
 
+            class QuietHandler(http.server.SimpleHTTPRequestHandler):
+                """
+                Request handler that suppresses default stderr logging.
+
+                This avoids problems in PyInstaller windowed builds where sys.stderr
+                may not behave like a normal console stream.
+                """
+
+                def log_message(self, format: str, *args: object) -> None:  # type: ignore[override]
+                    # Suppress logging to stderr; optionally write to a file if desired.
+                    return
+
             class QuietTCPServer(socketserver.TCPServer):
                 """
                 TCPServer that suppresses noisy tracebacks for common
-                connection aborts (e.g., favicon 404s in browsers).
+                connection issues (e.g., browser aborts).
                 """
+
+                # Allow immediate reuse of the port on restart.
+                allow_reuse_address = True
 
                 def handle_error(self, request, client_address):  # type: ignore[override]
                     exc_type, exc, _ = sys.exc_info()
-                    if isinstance(exc, ConnectionAbortedError):
-                        # Ignore benign connection aborts.
+                    # Ignore benign connection aborts and resets that browsers cause a lot.
+                    if isinstance(exc, (ConnectionAbortedError, ConnectionResetError, BrokenPipeError)):
                         return
+                    # Fall back to the default behavior for unexpected errors.
                     super().handle_error(request, client_address)
 
-            handler = http.server.SimpleHTTPRequestHandler
-            with QuietTCPServer(("", self._serve_port), handler) as httpd:
+            with QuietTCPServer(("", self._serve_port), QuietHandler) as httpd:
                 httpd.timeout = 1.0
                 while not stop_event.is_set():
                     httpd.handle_request()
