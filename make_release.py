@@ -83,7 +83,10 @@ def update_version_in_pyproject(new_version: str) -> str:
     if old_version == new_version:
         die(f"pyproject.toml already has version {new_version!r}.")
 
-    new_text = re.sub(pattern, rf'\1{new_version}\3', text, count=1)
+    def _repl(match: "re.Match[str]") -> str:
+        return f'{match.group(1)}{new_version}{match.group(3)}'
+
+    new_text = re.sub(pattern, _repl, text, count=1)
     PYPROJECT.write_text(new_text, encoding="utf-8")
 
     print(f"Updated version: {old_version} → {new_version}")
