@@ -169,3 +169,19 @@ def build_release(session: nox.Session) -> None:
 
     session.log(f"Created {zip_path}")
     session.log(f"Created {sha_path}")
+
+
+# in noxfile.py
+@nox.session
+def release_local(session: nox.Session) -> None:
+    """
+    Convenience wrapper around make_release.py.
+
+    Usage:
+        nox -s release_local -- 0.5.0
+    """
+    if not session.posargs:
+        session.error("Usage: nox -s release_local -- <version>")
+
+    version = session.posargs[0]
+    session.run("python", "make_release.py", version, external=True)

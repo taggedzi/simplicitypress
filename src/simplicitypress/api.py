@@ -206,4 +206,3 @@ def serve_site(
         except KeyboardInterrupt:
             # Allow clean shutdown when used from CLI.
             pass
-
