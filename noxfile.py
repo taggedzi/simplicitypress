@@ -49,6 +49,16 @@ def build(session: nox.Session) -> None:
 
 
 @nox.session
+def dist(session: nox.Session) -> None:
+    """Build sdist and wheel into dist/ using python -m build."""
+    session.install(".[dev]")
+    dist_dir = Path("dist")
+    if dist_dir.exists():
+        shutil.rmtree(dist_dir)
+    session.run("python", "-m", "build")
+
+
+@nox.session
 def build_exe(session: nox.Session) -> None:
     """Build a Windows GUI .exe for SimplicityPress using PyInstaller.
 
