@@ -1,22 +1,26 @@
-"""
-SimplicityPress is a simple, library-first static site generator
-focused on posts and pages.
-"""
-
 from __future__ import annotations
 
-from pathlib import Path
-import tomllib
+from importlib.metadata import PackageNotFoundError, version
 
-__all__ = ["__version__"]
+# your existing imports:
+from .build import build_site
+from .config import load_config
+from .models import Config, Page, Post, ProgressEvent, SitePaths, Stage
 
+try:
+    __version__ = version("simplicitypress")
+except PackageNotFoundError:
+    # Fallback for dev / frozen executables where metadata isn't available
+    __version__ = "0.0.0"
 
-def _read_version() -> str:
-    """Read the project version from pyproject.toml."""
-    # Project root is two levels up from this file: src/simplicitypress/__init__.py
-    root = Path(__file__).resolve().parents[2]
-    data = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
-    return data["project"]["version"]
-
-
-__version__ = _read_version()
+__all__ = [
+    "Config",
+    "SitePaths",
+    "Post",
+    "Page",
+    "ProgressEvent",
+    "Stage",
+    "load_config",
+    "build_site",
+    "__version__",
+]
