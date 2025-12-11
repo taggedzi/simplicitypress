@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "simplicitypress"
-version = "0.1.4"
+version = "0.1.5"
 description = "A simple, static site generator for posts and pages, using Markdown and converting to HTML."
 readme = "README.md"
 requires-python = ">=3.11"
