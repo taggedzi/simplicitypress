@@ -2,10 +2,13 @@
 from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.utils.hooks import collect_submodules
 
-datas = []
+datas = [
+    ('LICENSE', '.'),
+    ('LICENSES/pyside_lgpl.txt', 'licenses'),
+]
 hiddenimports = []
-datas += collect_data_files('simplicitypress')
-hiddenimports += collect_submodules('simplicitypress')
+datas += collect_data_files("simplicitypress")
+hiddenimports += collect_submodules("simplicitypress")
 
 
 a = Analysis(

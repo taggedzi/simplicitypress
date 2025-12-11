@@ -127,17 +127,18 @@ def build_release(session: nox.Session) -> None:
 
     # Copy license / attribution files into the exe folder
     root = Path(".")
-    for name in [
-        "LICENSE",
-        "THIRD-PARTY-NOTICES.txt",
-        "QT-ATTRIBUTION.txt",
-        "LICENSE-LGPLv3.txt",
-    ]:
-        src = root / name
+    mappings = [
+        ("LICENSE", exe_dir / "LICENSE"),
+        ("THIRD-PARTY-NOTICES.txt", exe_dir / "THIRD-PARTY-NOTICES.txt"),
+        ("QT-ATTRIBUTION.txt", exe_dir / "QT-ATTRIBUTION.txt"),
+        ("LICENSES/pyside_lgpl.txt", exe_dir / "licenses" / "pyside_lgpl.txt"),
+    ]
+    for src_name, dst_path in mappings:
+        src = root / src_name
         if not src.exists():
             session.error(f"Required file {src} is missing.")
-        dst = exe_dir / name
-        shutil.copy2(src, dst)
+        dst_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst_path)
 
     version = _read_version()
     base_name = f"simplicitypress-v{version}-win64"

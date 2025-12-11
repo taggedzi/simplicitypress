@@ -276,7 +276,7 @@ PySide6 (Qt for Python)
 -------------------------------------------------------------------------------
 
 PySide6 (Qt for Python) – Licensed under LGPLv3.
-See QT-ATTRIBUTION.txt and LICENSE-LGPLv3.txt included with this application.
+See QT-ATTRIBUTION.txt and licenses/pyside_lgpl.txt included with this application.
 
 -------------------------------------------------------------------------------
 END OF THIRD-PARTY NOTICES
