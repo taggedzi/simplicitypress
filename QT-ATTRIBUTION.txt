@@ -14,7 +14,7 @@ redistributions provided by The Qt Company via PyPI.
 In accordance with the LGPLv3 requirements:
 
   • The full text of the GNU Lesser General Public License v3 is provided
-    in the accompanying file: LICENSE-LGPLv3.txt
+    in the accompanying file: licenses/pyside_lgpl.txt
 
   • The Qt and PySide6 shared libraries included with this application may be
     replaced by the user with compatible versions. They are provided as separate

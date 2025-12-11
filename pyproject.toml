@@ -8,7 +8,7 @@ version = "0.1.6"
 description = "A simple, static site generator for posts and pages, using Markdown and converting to HTML."
 readme = "README.md"
 requires-python = ">=3.11"
-license-files = [ "LICENSE" ]
+license-files = [ "LICENSE", "LICENSES/pyside_lgpl.txt" ]
 authors = [
     { name = "Matthew Craig", email = "taggedzi.mpc@gmail.com" }
 ]

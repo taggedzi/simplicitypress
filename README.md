@@ -202,6 +202,11 @@ After building, navigation might look like:
 
 Pages without `show_in_nav = true` remain accessible but unlisted.
 
-## License
+## Licensing
 
-SimplicityPress is released under the [MIT License](./LICENSE).
+- **SimplicityPress** is licensed under the **MIT License**.  
+  See the [`LICENSE`](./LICENSE) file in the repository root.
+
+- SimplicityPress depends on third-party libraries which may be licensed under different terms
+  (for example, **PySide6**, which is available under the **LGPL**).  
+  See the [`LICENSES/`](./LICENSES) directory for third-party license notices.
