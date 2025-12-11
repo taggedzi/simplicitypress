@@ -1,0 +1,32 @@
+QT / PYSIDE6 ATTRIBUTION
+========================
+
+SimplicityPress uses Qt for Python (PySide6), which is based on the Qt framework.
+
+Qt for Python (PySide6) is licensed under the GNU Lesser General Public License
+version 3 (LGPLv3). This license permits the use of PySide6 in closed-source
+applications provided that the terms of the LGPLv3 are met.
+
+No modifications have been made to PySide6 or Qt by the SimplicityPress project.
+All Qt and PySide6 libraries included in this distribution are unmodified binary
+redistributions provided by The Qt Company via PyPI.
+
+In accordance with the LGPLv3 requirements:
+
+  • The full text of the GNU Lesser General Public License v3 is provided
+    in the accompanying file: LICENSE-LGPLv3.txt
+
+  • The Qt and PySide6 shared libraries included with this application may be
+    replaced by the user with compatible versions. They are provided as separate
+    dynamic libraries (.dll) rather than statically linked code.
+
+  • No changes have been made to the Qt or PySide6 sources. The SimplicityPress
+    project is not required to provide Qt/PySide6 source code, as no modifications
+    were made. The original source is available from The Qt Company and PyPI.
+
+Qt and the Qt logo are trademarks of The Qt Company Ltd.
+Copyright © The Qt Company.
+
+For more information:
+  https://www.qt.io/
+  https://doc.qt.io/qtforpython/
