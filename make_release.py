@@ -1,0 +1,122 @@
+#!/usr/bin/env python
+"""
+make_release.py
+
+Helper script for cutting a new SimplicityPress release.
+
+Usage:
+    python make_release.py 0.5.0
+
+What it does:
+  1. Checks that git working tree is clean.
+  2. Updates [project].version in pyproject.toml.
+  3. Commits the change: "Release v0.5.0".
+  4. Creates an annotated git tag: v0.5.0.
+  5. Prints the `git push` commands you should run next.
+"""
+
+from __future__ import annotations
+
+import re
+import subprocess
+import sys
+from pathlib import Path
+from typing import NoReturn
+
+
+ROOT = Path(__file__).resolve().parent
+PYPROJECT = ROOT / "pyproject.toml"
+
+
+def die(msg: str) -> NoReturn:
+    print(f"ERROR: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def run(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
+    print(f"+ {' '.join(cmd)}")
+    return subprocess.run(cmd, check=check, text=True)
+
+
+def ensure_clean_git() -> None:
+    """Abort if there are uncommitted changes."""
+    result = run(["git", "status", "--porcelain"], check=False)
+    if result.stdout.strip():
+        die(
+            "Git working tree is not clean.\n"
+            "Commit or stash your changes before running make_release.py."
+        )
+
+
+def update_version_in_pyproject(new_version: str) -> str:
+    """
+    Replace the [project] version string in pyproject.toml.
+
+    This assumes a line like:
+        version = "0.4.0"
+    in the [project] table.
+    """
+    if not PYPROJECT.exists():
+        die(f"pyproject.toml not found at {PYPROJECT}")
+
+    text = PYPROJECT.read_text(encoding="utf-8")
+
+    # Simple sanity check: make sure there's a [project] table
+    if "[project]" not in text:
+        die("Could not find [project] table in pyproject.toml.")
+
+    # Replace the first version = "..."
+    pattern = r'(?m)^(version\s*=\s*")([^"]+)(")'
+    match = re.search(pattern, text)
+    if not match:
+        die('Could not find a `version = "...` line in pyproject.toml.')
+
+    old_version = match.group(2)
+    if old_version == new_version:
+        die(f"pyproject.toml already has version {new_version!r}.")
+
+    new_text = re.sub(pattern, rf'\1{new_version}\3', text, count=1)
+    PYPROJECT.write_text(new_text, encoding="utf-8")
+
+    print(f"Updated version: {old_version} → {new_version}")
+    return old_version
+
+
+def git_commit_and_tag(version: str) -> None:
+    """Create a commit and an annotated tag for the new version."""
+    # Stage pyproject.toml
+    run(["git", "add", str(PYPROJECT)])
+
+    # Commit
+    msg = f"Release v{version}"
+    run(["git", "commit", "-m", msg])
+
+    # Tag
+    tag = f"v{version}"
+    run(["git", "tag", "-a", tag, "-m", msg])
+
+    print()
+    print(f"Created tag {tag}.")
+    print("Next steps:")
+    print("  git push")
+    print("  git push --tags")
+
+
+def main(argv: list[str]) -> None:
+    if len(argv) != 2:
+        print("Usage: python make_release.py <version>", file=sys.stderr)
+        sys.exit(1)
+
+    new_version = argv[1].strip()
+
+    # Very light sanity check: X.Y or X.Y.Z
+    if not re.match(r"^\d+\.\d+(\.\d+)?$", new_version):
+        die(f"Version {new_version!r} does not look like X.Y or X.Y.Z")
+
+    ensure_clean_git()
+    update_version_in_pyproject(new_version)
+    git_commit_and_tag(new_version)
+
+
+if __name__ == "__main__":
+    main(sys.argv)
