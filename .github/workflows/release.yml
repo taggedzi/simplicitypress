@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build & test & package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Nox
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install nox
+
+      - name: Run tests (lint, typecheck, tests)
+        run: |
+          nox --sessions lint typecheck tests
+
+      - name: Build sdist and wheel
+        run: |
+          nox --sessions dist
+
+      - name: Twine check
+        run: |
+          python -m pip install twine
+          twine check dist/*
+
+      - name: Upload Python packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplicitypress-dist
+          path: dist/*
+
+  windows-binary:
+    name: Build Windows GUI binary
+    runs-on: windows-latest
+    needs: release
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Nox
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install nox
+
+      - name: Build Windows executable
+        run: |
+          nox --sessions build_exe
+
+      - name: Upload Windows binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplicitypress-windows-binary
+          path: dist/SimplicityPress/**
+
