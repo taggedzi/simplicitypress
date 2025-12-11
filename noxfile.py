@@ -9,10 +9,19 @@ Sessions:
 
 from __future__ import annotations
 from pathlib import Path
+import hashlib
 import shutil
+import tomllib
 import nox
 
 PYTHON_VERSIONS = ["3.11", "3.12", "3.13"]
+
+
+def _read_version() -> str:
+    """Read the project version from pyproject.toml."""
+    pyproject = Path("pyproject.toml")
+    data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+    return data["project"]["version"]
 
 @nox.session
 def tests(session: nox.Session) -> None:
@@ -102,3 +111,61 @@ def build_exe(session: nox.Session) -> None:
         "src",
         "src/simplicitypress/gui.py",
     )
+
+
+@nox.session
+def build_release(session: nox.Session) -> None:
+    """Package the Windows build into a versioned zip + SHA256 checksum."""
+    dist_dir = Path("dist")
+    exe_dir = dist_dir / "SimplicityPress"
+
+    if not exe_dir.exists():
+        session.error(
+            "PyInstaller output not found at dist/SimplicityPress. "
+            "Run 'nox -s build_exe' first."
+        )
+
+    # Copy license / attribution files into the exe folder
+    root = Path(".")
+    for name in [
+        "LICENSE",
+        "THIRD-PARTY-NOTICES.txt",
+        "QT-ATTRIBUTION.txt",
+        "LICENSE-LGPLv3.txt",
+    ]:
+        src = root / name
+        if not src.exists():
+            session.error(f"Required file {src} is missing.")
+        dst = exe_dir / name
+        shutil.copy2(src, dst)
+
+    version = _read_version()
+    base_name = f"simplicitypress-v{version}-win64"
+    zip_path = dist_dir / f"{base_name}.zip"
+    sha_path = dist_dir / f"{base_name}.zip.sha256"
+
+    if zip_path.exists():
+        zip_path.unlink()
+    if sha_path.exists():
+        sha_path.unlink()
+
+    # Create zip from contents of dist/SimplicityPress
+    shutil.make_archive(
+        base_name=str(dist_dir / base_name),
+        format="zip",
+        root_dir=exe_dir,
+        base_dir=".",
+    )
+
+    # Compute SHA256
+    hasher = hashlib.sha256()
+    with zip_path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            if not chunk:
+                break
+            hasher.update(chunk)
+    digest = hasher.hexdigest()
+    sha_path.write_text(f"{digest}  {zip_path.name}\n", encoding="utf-8")
+
+    session.log(f"Created {zip_path}")
+    session.log(f"Created {sha_path}")

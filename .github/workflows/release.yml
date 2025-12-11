@@ -6,9 +6,93 @@ on:
       - "v*.*.*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  test:
+    name: Test (Linux matrix + one Windows)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+        include:
+          # Add exactly one Windows combo for sanity checks
+          - os: windows-latest
+            python-version: "3.13"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install nox
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install nox
+
+      - name: Run test session
+        run: nox -s tests
+
+  build_linux:
+    name: Build sdist/wheels (Linux)
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"   # latest for artifact builds
+
+      - name: Install nox
+        run: pip install nox
+
+      - name: Build distributions
+        run: nox -s dist   # <-- your session that puts files in dist/
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-dist
+          path: dist/*
+
+  build_windows_exe:
+    name: Build Windows EXE
+    needs: test
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"   # latest for EXE builds
+
+      - name: Install nox
+        run: pip install nox
+
+      - name: Build Windows EXE + zip
+        run: nox -s build_exe   # session that creates the EXE and related artifacts
+
+      - name: Bundle Windows release zip
+        run: nox -s bundle_release
+
+      - name: Upload Windows EXE artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: |
+            dist/simplicitypress-v*-win64.zip
+            dist/simplicitypress-v*-win64.zip.sha256
+
   release:
     name: Build & test & package
     runs-on: ubuntu-latest
