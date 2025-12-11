@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 SimplicityPress: a small, opinionated static site generator.
 
@@ -7,6 +5,8 @@ Public API:
 - CLI entry points live in `simplicitypress.cli`.
 - Programmatic API lives in `simplicitypress.api` and `simplicitypress.core.*`.
 """
+
+from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from pathlib import Path
