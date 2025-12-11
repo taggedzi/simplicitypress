@@ -33,14 +33,22 @@ def die(msg: str) -> NoReturn:
     sys.exit(1)
 
 
-def run(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
+def run(
+    cmd: list[str],
+    check: bool = True,
+    capture_output: bool = False,
+) -> subprocess.CompletedProcess:
     print(f"+ {' '.join(cmd)}")
-    return subprocess.run(cmd, check=check, text=True)
+    kwargs: dict[str, object] = {"check": check, "text": True}
+    if capture_output:
+        kwargs["stdout"] = subprocess.PIPE
+        kwargs["stderr"] = subprocess.PIPE
+    return subprocess.run(cmd, **kwargs)  # type: ignore[arg-type]
 
 
 def ensure_clean_git() -> None:
     """Abort if there are uncommitted changes."""
-    result = run(["git", "status", "--porcelain"], check=False)
+    result = run(["git", "status", "--porcelain"], check=False, capture_output=True)
     if result.stdout.strip():
         die(
             "Git working tree is not clean.\n"
