@@ -4,11 +4,32 @@
   <section class="sp-search-page">
     <header class="sp-page-header">
       <h1>Search</h1>
-      <p class="sp-search-tagline">{{ search_placeholder_message }}</p>
+      <p class="sp-search-tagline">Find posts and pages without leaving your browser.</p>
     </header>
-    <div id="sp-search-root" class="sp-search-root">
-      <p>Loading search interface...</p>
+    <div class="sp-search-panel">
+      <form id="sp-search-form" class="sp-search-form" role="search">
+        <label for="sp-search-input" class="sp-search-label">Search the site</label>
+        <input
+          id="sp-search-input"
+          class="sp-search-input"
+          type="search"
+          name="q"
+          placeholder="Search posts and pages"
+          autocomplete="off"
+          spellcheck="false"
+          autofocus
+        >
+      </form>
+      <div id="sp-search-results" class="sp-search-results">
+        <p>Loading search index...</p>
+      </div>
     </div>
   </section>
+  <script>
+    window.__SP_SEARCH__ = {
+      assetsBase: "{{ search_assets_base }}",
+      minTokenLength: {{ search_min_token_len }},
+    };
+  </script>
   <script src="{{ search_bundle_path }}" defer></script>
 {% endblock %}

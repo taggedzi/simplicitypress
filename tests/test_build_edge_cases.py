@@ -71,6 +71,10 @@ def _write_minimal_templates(site_root: Path) -> None:
         "<rss><channel></channel></rss>",
         encoding="utf-8",
     )
+    (templates / "search.html").write_text(
+        "{% extends 'base.html' %}{% block content %}Search{% endblock %}",
+        encoding="utf-8",
+    )
 
 
 def _prepare_empty_site(tmp_path: Path) -> Path:
