@@ -79,6 +79,8 @@ def test_search_assets_are_deterministic(tmp_path: Path) -> None:
     assert python_postings[1][0] == 1
     about_postings = terms1["about"]
     assert about_postings[0][0] == 2
+    welcoming_postings = terms1["welcoming"]
+    assert welcoming_postings[0][0] == 2
 
     # Deterministic comparison (ignore timestamp).
     docs1_no_ts = {**docs1, "generated_at": None}
@@ -87,8 +89,26 @@ def test_search_assets_are_deterministic(tmp_path: Path) -> None:
     assert terms1 == terms2
 
 
-def _prepare_search_enabled_site(tmp_path: Path) -> Path:
-    site_root = tmp_path
+def test_normalization_toggle_affects_scores(tmp_path: Path) -> None:
+    norm_root = _prepare_search_enabled_site(tmp_path / "norm", normalize_by_doc_len=True)
+    build_site(load_config(norm_root))
+    _, terms_norm = _read_search_payloads(norm_root / "output")
+
+    non_norm_root = _prepare_search_enabled_site(tmp_path / "non_norm", normalize_by_doc_len=False)
+    build_site(load_config(non_norm_root))
+    _, terms_non_norm = _read_search_payloads(non_norm_root / "output")
+
+    python_norm = terms_norm["python"]
+    python_non_norm = terms_non_norm["python"]
+
+    assert python_norm[0][0] == 0
+    assert python_norm[1][0] == 1
+    assert python_norm[0][1] > python_norm[1][1]
+    assert python_non_norm[0][1] == python_non_norm[1][1]
+
+
+def _prepare_search_enabled_site(site_root: Path, *, normalize_by_doc_len: bool = True) -> Path:
+    site_root.mkdir(parents=True, exist_ok=True)
     posts_dir = site_root / "content" / "posts"
     pages_dir = site_root / "content" / "pages"
     templates_dir = site_root / "templates"
@@ -126,8 +146,9 @@ def _prepare_search_enabled_site(tmp_path: Path) -> Path:
 
         [search]
         enabled = true
+        normalize_by_doc_len = %s
         """,
-    )
+    ) % ("true" if normalize_by_doc_len else "false")
     (site_root / "site.toml").write_text(site_toml, encoding="utf-8")
 
     _write_search_templates(templates_dir)
@@ -140,7 +161,7 @@ def _prepare_search_enabled_site(tmp_path: Path) -> Path:
         tags = ["python", "news"]
         summary = "Alpha summary body."
         +++
-        Alpha body content.
+        Alpha body content is short.
         """,
     )
     post_two = dedent(
@@ -151,7 +172,9 @@ def _prepare_search_enabled_site(tmp_path: Path) -> Path:
         tags = ["python"]
         summary = "Beta summary."
         +++
-        Beta body content.
+        Beta body content is considerably longer than the alpha body content.
+        It keeps elaborating on details for several sentences so that its token
+        count grows significantly in comparison to the shorter alpha post.
         """,
     )
     (posts_dir / "alpha.md").write_text(post_one, encoding="utf-8")
@@ -163,7 +186,7 @@ def _prepare_search_enabled_site(tmp_path: Path) -> Path:
         title = "About"
         slug = "about"
         +++
-        <p>About SimplicityPress page.</p>
+        <p>About SimplicityPress page welcoming everyone with friendly details.</p>
         """,
     )
     (pages_dir / "about.md").write_text(page_about, encoding="utf-8")

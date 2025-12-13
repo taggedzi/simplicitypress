@@ -274,6 +274,7 @@ class SearchDocument:
 class DocumentRecord:
     document: SearchDocument
     token_weights: dict[str, float]
+    body_token_count: int
 
 
 class SearchAssetsBuilder:
@@ -343,7 +344,9 @@ class SearchAssetsBuilder:
         settings = self._settings
 
         for post in posts:
-            excerpt = _normalize_excerpt(post.summary or "", limit=200)
+            body_text = _html_to_text(post.content_html)
+            summary_source = post.summary or body_text
+            excerpt = _normalize_excerpt(_html_to_text(summary_source), limit=200)
             doc = SearchDocument(
                 id=next_id,
                 url=post.url,
@@ -352,13 +355,16 @@ class SearchAssetsBuilder:
                 date=post.date.date().isoformat(),
                 excerpt=excerpt,
             )
-            token_weights = _collect_token_weights(post.title, post.tags, settings)
-            records.append(DocumentRecord(document=doc, token_weights=token_weights))
+            token_weights, body_count = _collect_token_weights(post.title, post.tags, body_text, settings)
+            records.append(
+                DocumentRecord(document=doc, token_weights=token_weights, body_token_count=body_count),
+            )
             next_id += 1
 
         sorted_pages = sorted(pages, key=lambda page: (page.slug, page.title.lower()))
         for page in sorted_pages:
-            excerpt = _normalize_excerpt(_html_to_text(page.content_html), limit=200)
+            body_text = _html_to_text(page.content_html)
+            excerpt = _normalize_excerpt(body_text, limit=200)
             doc = SearchDocument(
                 id=next_id,
                 url=page.url,
@@ -367,8 +373,10 @@ class SearchAssetsBuilder:
                 date=None,
                 excerpt=excerpt,
             )
-            token_weights = _collect_token_weights(page.title, [], settings)
-            records.append(DocumentRecord(document=doc, token_weights=token_weights))
+            token_weights, body_count = _collect_token_weights(page.title, [], body_text, settings)
+            records.append(
+                DocumentRecord(document=doc, token_weights=token_weights, body_token_count=body_count),
+            )
             next_id += 1
 
         return records
@@ -394,8 +402,19 @@ def tokenize_text(text: str, min_len: int) -> list[str]:
     return [token for token in tokens if len(token) >= min_len]
 
 
-def _collect_token_weights(title: str, tags: Sequence[str], settings: SearchSettings) -> dict[str, float]:
+def _collect_token_weights(
+    title: str,
+    tags: Sequence[str],
+    body_text: str,
+    settings: SearchSettings,
+) -> tuple[dict[str, float], int]:
     weights: dict[str, float] = {}
+
+    body_tokens = tokenize_text(body_text, settings.min_token_len)
+    body_counts = Counter(body_tokens)
+    body_token_count = sum(body_counts.values())
+    for token, count in body_counts.items():
+        weights[token] = weights.get(token, 0.0) + count * settings.weight_body
 
     title_counts = Counter(tokenize_text(title, settings.min_token_len))
     for token, count in title_counts.items():
@@ -408,7 +427,7 @@ def _collect_token_weights(title: str, tags: Sequence[str], settings: SearchSett
     for token, count in tag_counts.items():
         weights[token] = weights.get(token, 0.0) + count * settings.weight_tags
 
-    return weights
+    return weights, body_token_count
 
 
 def _build_terms_index(records: Sequence[DocumentRecord], settings: SearchSettings) -> dict[str, list[list[float | int]]]:
@@ -427,6 +446,7 @@ def _build_terms_index(records: Sequence[DocumentRecord], settings: SearchSettin
             df_counter,
             doc_count,
             settings.max_terms_per_doc,
+            record.body_token_count,
             settings,
         )
         for token, score in scored_tokens:
@@ -446,6 +466,7 @@ def _score_document_tokens(
     df_counter: Mapping[str, int],
     doc_count: int,
     max_terms: int,
+    body_token_count: int,
     settings: SearchSettings,
 ) -> list[tuple[str, float]]:
     scored: list[tuple[str, float]] = []
@@ -458,6 +479,8 @@ def _score_document_tokens(
         tf = 1.0 + math.log(weight)
         idf = math.log((doc_count + 1) / (df + 1)) + 1.0
         score = tf * idf
+        if settings.normalize_by_doc_len and body_token_count > 0:
+            score /= math.sqrt(body_token_count)
         scored.append((token, score))
 
     scored.sort(key=lambda item: (-item[1], item[0]))
