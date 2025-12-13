@@ -205,11 +205,33 @@ After building, navigation might look like:
 
 Pages without `show_in_nav = true` remain accessible but unlisted.
 
-## Licensing
+---
+
+## 📚 Documentation
+
+See the `docs/` directory for in-depth guides:
+
+- Theme API & stability
+- Template variables & context
+- Writing templates from scratch
+
+---
+
+## 📦 Licensing
 
 - **SimplicityPress** is licensed under the **MIT License**.  
   See the [`LICENSE`](./LICENSE) file in the repository root.
 
 - SimplicityPress depends on third-party libraries which may be licensed under different terms
   (for example, **PySide6**, which is available under the **LGPL**).  
-  See the [`LICENSES/`](./LICENSES) directory for third-party license notices.
+  See the [`LICENSES/`](./LICENSES/) directory for third-party license notices.
+
+## 🤝 Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to get involved, coding standards, and contribution guidelines.
+
+---
+
+## 🛡 Security
+
+See [`SECURITY.md`](SECURITY.md) for reporting vulnerabilities.
