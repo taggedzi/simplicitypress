@@ -1,49 +1,75 @@
-# Documentation
+# Docs (includes repo docs + user docs)
 docs:
   - changed-files:
       - any-glob-to-any-file:
-          - "**/*.md"
+          - "README.md"
           - "docs/**"
+          - "**/*.md"
 
-# GitHub / meta
+# GitHub meta (templates, workflows, configs)
 github:
   - changed-files:
       - any-glob-to-any-file:
           - ".github/**"
 
-# CI / automation
+# CI / automation tooling
 ci:
   - changed-files:
       - any-glob-to-any-file:
           - ".github/workflows/**"
           - "noxfile.py"
-          - "pyproject.toml"
-          - "requirements*.txt"
+          - "make_release.py"
           - "tools/**"
-          - "scripts/**"
+
+# Core library code (engine + public API)
+core:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/simplicitypress/**"
+          - "!src/simplicitypress/gui.py"
+          - "!src/simplicitypress/cli.py"
+          - "!src/simplicitypress/scaffold/**"
+
+# CLI-specific changes
+cli:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/simplicitypress/cli.py"
+          - "src/simplicitypress/__main__.py"
+
+# GUI-specific changes
+gui:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/simplicitypress/gui.py"
+
+# Scaffolding (theme/templates/static assets)
+scaffold:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/simplicitypress/scaffold/**"
 
 # Tests
 tests:
   - changed-files:
       - any-glob-to-any-file:
           - "tests/**"
-          - "**/*test*.py"
 
-# Core source (adjust if your src layout differs)
-core:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "src/**"
-          - "**/*.py"
-
-# Packaging / release
+# Packaging / licensing / release artifacts
 packaging:
   - changed-files:
       - any-glob-to-any-file:
           - "pyproject.toml"
-          - "MANIFEST.in"
-          - "setup.cfg"
-          - "setup.py"
-          - "LICENSE*"
-          - "CHANGELOG*"
-          - "RELEASE*"
+          - "SimplicityPress.spec"
+          - "LICENSE"
+          - "LICENSES/**"
+          - "THIRD-PARTY-NOTICES.txt"
+          - "QT-ATTRIBUTION.txt"
+
+# Generated files
+generated:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "!src/simplicitypress.egg-info/**"
+          - "!build/**"
+          - "!dist/**"

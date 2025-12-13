@@ -1,0 +1,11 @@
+__pycache__/
+.mypy_cache/
+.nox/
+.pytest_cache/
+.ruff_cache/
+.venv/
+htmlcov/
+nonwordgen.egg-info
+.git/
+build/
+dist/
