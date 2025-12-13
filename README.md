@@ -23,6 +23,7 @@ If your needs are simple - posts, pages, tags, basic navigation, and clean outpu
   - A static web server  
 - Ships with a **working default theme** so you can publish immediately.
 - Includes a **local development server** for previewing builds.
+- Optional **fully static search** that runs entirely in the browser (no backend).
 - Written to be **library-first**, so you can:
   - Integrate it into other Python applications
   - Wrap it with a GUI (future feature)
@@ -57,6 +58,35 @@ Serve it locally:
 ```bash
 simplicitypress serve --site-root test-site --port 8000
 ```
+
+## 🔍 Static Search
+
+SimplicityPress ships an optional, fully static search experience. When enabled, the build emits a search page plus three small artifacts:
+
+- `assets/search/search_docs.json` – document metadata for rendering results
+- `assets/search/search_terms.json` – a compact inverted index
+- `assets/search/search.js` – the browser-side search engine
+
+Enable it in `site.toml`:
+
+```toml
+[search]
+enabled = true
+output_dir = "assets/search"
+page_path = "search/index.html"
+```
+
+Fine-tune the index with these keys:
+
+| Key | Description |
+| --- | --- |
+| `max_terms_per_doc` | Keep only the top N tokens per document (default `300`). |
+| `min_token_len` | Minimum token length (default `2`). |
+| `drop_df_ratio` / `drop_df_min` | Drop tokens that appear in too many (`ratio`) or too few (`min`) documents. |
+| `weight_body`, `weight_title`, `weight_tags` | Control how much each field contributes before TF-IDF scoring. |
+| `normalize_by_doc_len` | When `true`, divide scores by `sqrt(body_token_count)` so short/long posts are comparable. |
+
+See `docs/static_search.md` or `docs/search_spec.md` for a deeper walkthrough.
 
 Build with overrides:
 

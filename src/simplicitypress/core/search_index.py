@@ -8,7 +8,7 @@ import math
 import re
 from pathlib import Path, PurePosixPath
 from textwrap import dedent
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 from jinja2 import Environment
 
@@ -218,14 +218,16 @@ class SearchSettings:
     @classmethod
     def from_config(cls, cfg: Mapping[str, object]) -> SearchSettings:
         def _float(key: str, default: float) -> float:
+            value: Any = cfg.get(key, default)
             try:
-                return float(cfg.get(key, default))
+                return float(value)
             except (TypeError, ValueError):
                 return default
 
         def _int(key: str, default: int, *, minimum: int | None = None) -> int:
+            raw_value: Any = cfg.get(key, default)
             try:
-                value = int(cfg.get(key, default))
+                value = int(raw_value)
             except (TypeError, ValueError):
                 value = default
             if minimum is not None:
