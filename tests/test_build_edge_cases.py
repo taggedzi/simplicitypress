@@ -34,6 +34,19 @@ def _write_basic_site_toml(site_root: Path) -> None:
         [author]
         name = ""
         email = ""
+
+        [search]
+        enabled = false
+        output_dir = "assets/search"
+        page_path = "search/index.html"
+        max_terms_per_doc = 300
+        min_token_len = 2
+        drop_df_ratio = 0.70
+        drop_df_min = 0
+        weight_body = 1.0
+        weight_title = 8.0
+        weight_tags = 6.0
+        normalize_by_doc_len = true
         """,
     )
     (site_root / "site.toml").write_text(cfg, encoding="utf-8")
@@ -69,6 +82,10 @@ def _write_minimal_templates(site_root: Path) -> None:
     )
     (templates / "feed.xml").write_text(
         "<rss><channel></channel></rss>",
+        encoding="utf-8",
+    )
+    (templates / "search.html").write_text(
+        "{% extends 'base.html' %}{% block content %}Search{% endblock %}",
         encoding="utf-8",
     )
 
@@ -200,4 +217,41 @@ def test_build_site_propagates_invalid_frontmatter_errors(tmp_path: Path) -> Non
 
     with pytest.raises(ValueError):
         build_site(config)
+
+
+def test_build_site_skips_search_assets_when_disabled(tmp_path: Path) -> None:
+    """Search assets should not exist in the output unless search is enabled."""
+    site_root = _prepare_empty_site(tmp_path)
+    config = load_config(site_root)
+
+    assert config.search.get("enabled") is False
+
+    build_site(config)
+
+    output = site_root / "output"
+    assert not (output / "assets" / "search").exists()
+    assert not (output / "search" / "index.html").exists()
+
+
+def test_navigation_link_includes_search_only_when_enabled(tmp_path: Path) -> None:
+    """Navigation items should include a Search link only when search is enabled."""
+    site_root = _prepare_empty_site(tmp_path)
+    templates = site_root / "templates"
+    (templates / "base.html").write_text(
+        "<!doctype html><html><body>"
+        "<nav>{% for item in nav_items %}<span>{{ item.title }}|{{ item.url }}</span>{% endfor %}</nav>"
+        "{% block content %}{% endblock %}"
+        "</body></html>",
+        encoding="utf-8",
+    )
+    config = load_config(site_root)
+
+    build_site(config)
+    index_html = (site_root / "output" / "index.html").read_text(encoding="utf-8")
+    assert "Search|" not in index_html
+
+    config.search["enabled"] = True
+    build_site(config)
+    index_html = (site_root / "output" / "index.html").read_text(encoding="utf-8")
+    assert "Search|/search/" in index_html
 

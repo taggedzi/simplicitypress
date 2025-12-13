@@ -153,3 +153,34 @@ def test_load_config_preserves_existing_output_directory(tmp_path: Path) -> None
 
     assert config.paths.output_dir.is_dir()
     assert (config.paths.output_dir / "marker.txt").read_text(encoding="utf-8") == "keep-me"
+
+
+def test_load_config_populates_search_defaults(tmp_path: Path) -> None:
+    """Search configuration defaults should be merged automatically."""
+    site_root = tmp_path
+
+    (site_root / "content" / "posts").mkdir(parents=True)
+    (site_root / "content" / "pages").mkdir(parents=True)
+    (site_root / "templates").mkdir()
+
+    site_toml = dedent(
+        """\
+        [site]
+        title = "Test Site"
+
+        [paths]
+        content_dir = "content"
+        posts_dir = "content/posts"
+        pages_dir = "content/pages"
+        templates_dir = "templates"
+        static_dir = "static"
+        output_dir = "output"
+        """,
+    )
+    (site_root / "site.toml").write_text(site_toml, encoding="utf-8")
+
+    config = load_config(site_root)
+
+    assert config.search["enabled"] is False
+    assert config.search["output_dir"] == "assets/search"
+    assert config.search["page_path"] == "search/index.html"

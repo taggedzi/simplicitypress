@@ -34,6 +34,7 @@ class Config:
     site: dict
     build: dict
     author: dict
+    search: dict
     paths: SitePaths
 
 
