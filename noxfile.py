@@ -176,7 +176,7 @@ def build_release(session: nox.Session) -> None:
 @nox.session
 def release_local(session: nox.Session) -> None:
     """
-    Convenience wrapper around make_release.py.
+    Convenience wrapper around tools/make_release.py.
 
     Usage:
         nox -s release_local -- 0.5.0
@@ -185,4 +185,4 @@ def release_local(session: nox.Session) -> None:
         session.error("Usage: nox -s release_local -- <version>")
 
     version = session.posargs[0]
-    session.run("python", "make_release.py", version, external=True)
+    session.run("python", "tools/make_release.py", version, external=True)

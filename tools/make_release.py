@@ -5,7 +5,7 @@ make_release.py
 Helper script for cutting a new SimplicityPress release.
 
 Usage:
-    python make_release.py 0.5.0
+    python tools/make_release.py 0.5.0
 
 What it does:
   1. Checks that git working tree is clean.
@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import NoReturn
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = ROOT / "pyproject.toml"
 
 
@@ -52,7 +52,7 @@ def ensure_clean_git() -> None:
     if result.stdout.strip():
         die(
             "Git working tree is not clean.\n"
-            "Commit or stash your changes before running make_release.py."
+            "Commit or stash your changes before running tools/make_release.py."
         )
 
 
@@ -115,7 +115,7 @@ def git_commit_and_tag(version: str) -> None:
 
 def main(argv: list[str]) -> None:
     if len(argv) != 2:
-        print("Usage: python make_release.py <version>", file=sys.stderr)
+        print("Usage: python tools/make_release.py <version>", file=sys.stderr)
         sys.exit(1)
 
     new_version = argv[1].strip()
