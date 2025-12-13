@@ -100,6 +100,19 @@ def init_site(site_root: Path) -> None:
                 [author]
                 name = ""
                 email = ""
+
+                [search]
+                enabled = false
+                output_dir = "assets/search"
+                page_path = "search/index.html"
+                max_terms_per_doc = 300
+                min_token_len = 2
+                drop_df_ratio = 0.70
+                drop_df_min = 0
+                weight_body = 1.0
+                weight_title = 8.0
+                weight_tags = 6.0
+                normalize_by_doc_len = true
                 """,
             ),
             encoding="utf-8",
