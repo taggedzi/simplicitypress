@@ -90,6 +90,6 @@ def load_config(site_root: Path) -> Config:
         site=merged.get("site", {}),
         build=merged.get("build", {}),
         author=merged.get("author", {}),
+        search=merged.get("search", {}),
         paths=site_paths,
     )
-

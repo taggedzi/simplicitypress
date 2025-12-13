@@ -201,3 +201,17 @@ def test_build_site_propagates_invalid_frontmatter_errors(tmp_path: Path) -> Non
     with pytest.raises(ValueError):
         build_site(config)
 
+
+def test_build_site_skips_search_assets_when_disabled(tmp_path: Path) -> None:
+    """Search assets should not exist in the output unless search is enabled."""
+    site_root = _prepare_empty_site(tmp_path)
+    config = load_config(site_root)
+
+    assert config.search.get("enabled") is False
+
+    build_site(config)
+
+    output = site_root / "output"
+    assert not (output / "assets" / "search").exists()
+    assert not (output / "search" / "index.html").exists()
+

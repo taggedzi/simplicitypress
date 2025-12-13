@@ -8,6 +8,7 @@ from .content import discover_content
 from .fs import copy_static_tree
 from .models import Config, Page, Post, ProgressEvent, Stage
 from .render import create_environment, render_to_file
+from .search_index import SearchAssetsBuilder
 
 
 INDEX_FILENAME = "index.html"
@@ -103,10 +104,16 @@ def build_site(
 
     env = create_environment(config.paths.templates_dir)
 
+    search_builder: SearchAssetsBuilder | None = None
+    if bool(config.search.get("enabled", False)):
+        search_builder = SearchAssetsBuilder(config)
+
     base_context: dict[str, object] = {
         "site": config.site,
         "author": config.author,
         "nav_items": nav_items,
+        "search_enabled": search_builder is not None,
+        "search_url": search_builder.page_url if search_builder else None,
     }
 
     emit(Stage.RENDERING_TEMPLATES, current=0, total=1, message="Rendering templates")
@@ -211,6 +218,9 @@ def build_site(
     }
     render_to_file(env, "feed.xml", feed_context, feed_target)
     emit(Stage.RENDERING_TEMPLATES, current=1, total=1, message="Rendering feed.xml")
+
+    if search_builder is not None:
+        search_builder.build_assets(posts, pages, env, base_context)
 
     # Static assets.
     emit(Stage.COPYING_STATIC, current=0, total=1, message="Copying static assets")

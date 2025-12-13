@@ -23,6 +23,9 @@
       <nav class="sp-nav" aria-label="Main navigation">
         <a href="/" class="sp-nav-link">Home</a>
         <a href="/tags/" class="sp-nav-link">Tags</a>
+        {% if search_enabled and search_url %}
+          <a href="{{ search_url }}" class="sp-nav-link">Search</a>
+        {% endif %}
         {% if nav_items %}
           {% for item in nav_items %}
             <a href="{{ item.url }}" class="sp-nav-link">{{ item.title }}</a>

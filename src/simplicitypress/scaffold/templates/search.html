@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <section class="sp-search-page">
+    <header class="sp-page-header">
+      <h1>Search</h1>
+      <p class="sp-search-tagline">{{ search_placeholder_message }}</p>
+    </header>
+    <div id="sp-search-root" class="sp-search-root">
+      <p>Loading search interface...</p>
+    </div>
+  </section>
+  <script src="{{ search_bundle_path }}" defer></script>
+{% endblock %}
