@@ -1,0 +1,49 @@
+# Documentation
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**"
+
+# GitHub / meta
+github:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+
+# CI / automation
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - "noxfile.py"
+          - "pyproject.toml"
+          - "requirements*.txt"
+          - "tools/**"
+          - "scripts/**"
+
+# Tests
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tests/**"
+          - "**/*test*.py"
+
+# Core source (adjust if your src layout differs)
+core:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**"
+          - "**/*.py"
+
+# Packaging / release
+packaging:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "pyproject.toml"
+          - "MANIFEST.in"
+          - "setup.cfg"
+          - "setup.py"
+          - "LICENSE*"
+          - "CHANGELOG*"
+          - "RELEASE*"

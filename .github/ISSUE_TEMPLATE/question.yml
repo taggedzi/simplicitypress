@@ -1,0 +1,32 @@
+name: Question / Support
+description: Ask a question or get help.
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If you're unsure whether this is a bug, it's okay — start here.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to do? What have you tried?
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / output (optional)
+      render: text
+    validations:
+      required: false
