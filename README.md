@@ -1,5 +1,8 @@
 # SimplicityPress
 
+<!-- Badges -->
+[![CI](https://github.com/taggedzi/simplicitypress/actions/workflows/ci.yml/badge.svg)](https://github.com/taggedzi/simplicitypress/actions/workflows/ci.yml) [![Release](https://github.com/taggedzi/simplicitypress/actions/workflows/release.yml/badge.svg)](https://github.com/taggedzi/simplicitypress/actions/workflows/release.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/) [![Ruff lint](https://img.shields.io/badge/lint%20with-ruff-informational)](https://github.com/astral-sh/ruff) [![Mypy](https://img.shields.io/badge/type%20checking-mypy-informational)](https://mypy-lang.org/) [![Issues](https://img.shields.io/github/issues/taggedzi/simplicitypress.svg)](https://github.com/taggedzi/simplicitypress/issues) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/taggedzi/simplicitypress/pulls)
+
 SimplicityPress is a **minimal, library-first static site generator** designed for people who want a clean, predictable Markdown → HTML workflow without the complexity of full CMS platforms or heavyweight SSG ecosystems.
 
 If your needs are simple - posts, pages, tags, basic navigation, and clean output - SimplicityPress gives you a lightweight, transparent tool that is easy to understand, customize, and automate.
@@ -35,7 +38,7 @@ Install in editable mode:
 
 ```bash
 python -m pip install -e .
-````
+```
 
 Create a new site:
 
@@ -73,16 +76,16 @@ simplicitypress serve --site-root test-site --output test-site/public --no-build
 
 SimplicityPress treats **pages** as standalone, non-blog content - perfect for:
 
-* About
-* Contact
-* Projects
-* FAQ
-* Resume
-* Privacy Policy
+- About
+- Contact
+- Projects
+- FAQ
+- Resume
+- Privacy Policy
 
 Pages live under:
 
-```
+```bash
 content/pages/
 ```
 
@@ -102,25 +105,25 @@ This is the **About** page body.
 
 **Fields:**
 
-* `title` *(required)*
+- `title` *(required)*
   Human-readable title.
 
-* `slug` *(optional)*
+- `slug` *(optional)*
   Defaults to filename (`about` → `/about/`).
 
-* `show_in_nav` *(optional)*
+- `show_in_nav` *(optional)*
   Adds this page to the top navigation bar.
 
-* `nav_title` *(optional)*
+- `nav_title` *(optional)*
   Override display label in navigation.
 
-* `nav_order` *(optional)*
+- `nav_order` *(optional)*
   Controls global nav ordering (lower = earlier).
 
 Output:
 
-* URL → `/<slug>/`
-* File → `output/<slug>/index.html`
+- URL → `/<slug>/`
+- File → `output/<slug>/index.html`
 
 ---
 
@@ -130,7 +133,7 @@ Posts appear on the blog index and support dates, tags, summaries, and optional 
 
 Posts live under:
 
-```
+```bash
 content/posts/
 ```
 
@@ -153,21 +156,21 @@ This is the **post body**, written in Markdown.
 
 **Post features:**
 
-* Must include a `date`.
-* Casually support tags → generate:
+- Must include a `date`.
+- Casually support tags → generate:
 
-  * `/tags/`
-  * `/tags/<tag>/`
-* Appear in:
+  - `/tags/`
+  - `/tags/<tag>/`
+- Appear in:
 
-  * Home page
-  * Pagination pages
-  * Tag listings
+  - Home page
+  - Pagination pages
+  - Tag listings
 
 Output:
 
-* URL → `/posts/<slug>/`
-* File → `output/posts/<slug>/index.html`
+- URL → `/posts/<slug>/`
+- File → `output/posts/<slug>/index.html`
 
 ---
 
@@ -175,9 +178,9 @@ Output:
 
 The default theme includes:
 
-* **Home** (`/`)
-* **Tags** (`/tags/`)
-* Any **pages that opt in** with `show_in_nav = true`
+- **Home** (`/`)
+- **Tags** (`/tags/`)
+- Any **pages that opt in** with `show_in_nav = true`
 
 Navigation is intentionally simple - no dropdowns or multi-level menus.
 
