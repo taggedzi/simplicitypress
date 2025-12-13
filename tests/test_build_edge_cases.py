@@ -232,3 +232,26 @@ def test_build_site_skips_search_assets_when_disabled(tmp_path: Path) -> None:
     assert not (output / "assets" / "search").exists()
     assert not (output / "search" / "index.html").exists()
 
+
+def test_navigation_link_includes_search_only_when_enabled(tmp_path: Path) -> None:
+    """Navigation items should include a Search link only when search is enabled."""
+    site_root = _prepare_empty_site(tmp_path)
+    templates = site_root / "templates"
+    (templates / "base.html").write_text(
+        "<!doctype html><html><body>"
+        "<nav>{% for item in nav_items %}<span>{{ item.title }}|{{ item.url }}</span>{% endfor %}</nav>"
+        "{% block content %}{% endblock %}"
+        "</body></html>",
+        encoding="utf-8",
+    )
+    config = load_config(site_root)
+
+    build_site(config)
+    index_html = (site_root / "output" / "index.html").read_text(encoding="utf-8")
+    assert "Search|" not in index_html
+
+    config.search["enabled"] = True
+    build_site(config)
+    index_html = (site_root / "output" / "index.html").read_text(encoding="utf-8")
+    assert "Search|/search/" in index_html
+

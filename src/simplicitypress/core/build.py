@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from math import ceil
-from typing import Callable, Optional
+from typing import Callable, Optional, Sequence
 
 from .content import discover_content
 from .fs import copy_static_tree
@@ -34,7 +34,10 @@ def _slugify_tag(tag: str) -> str:
     return re.sub(r"[^a-z0-9_-]", "", tag)
 
 
-def _build_nav_items(pages: list[Page]) -> list[dict[str, object]]:
+def _build_nav_items(
+    pages: list[Page],
+    extra: Sequence[dict[str, object]] | None = None,
+) -> list[dict[str, object]]:
     """
     Build a list of navigation items from pages that opt into the nav.
     """
@@ -50,6 +53,8 @@ def _build_nav_items(pages: list[Page]) -> list[dict[str, object]]:
                 "order": page.nav_order,
             },
         )
+    if extra:
+        items.extend(extra)
     items.sort(key=lambda item: (item["order"], str(item["title"]).lower()))
     return items
 
@@ -95,9 +100,6 @@ def build_site(
     # Build tag index.
     tag_index = _build_tag_index(posts)
 
-    # Build navigation items from pages.
-    nav_items = _build_nav_items(pages)
-
     # Pagination for the home page.
     posts_per_page = int(config.build.get("posts_per_page", 10)) or 10
     total_pages = max(1, ceil(len(posts) / posts_per_page))
@@ -105,8 +107,19 @@ def build_site(
     env = create_environment(config.paths.templates_dir)
 
     search_builder: SearchAssetsBuilder | None = None
+    search_nav_extra: list[dict[str, object]] = []
     if bool(config.search.get("enabled", False)):
         search_builder = SearchAssetsBuilder(config)
+        search_nav_extra.append(
+            {
+                "title": "Search",
+                "url": search_builder.page_url,
+                "order": 0,
+                "is_search": True,
+            },
+        )
+
+    nav_items = _build_nav_items(pages, extra=search_nav_extra if search_nav_extra else None)
 
     base_context: dict[str, object] = {
         "site": config.site,
