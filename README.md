@@ -14,6 +14,7 @@ If your needs are simple - posts, pages, tags, basic navigation, and clean outpu
   - **Blog posts** (with dates, tags, summaries)
   - **Static pages** (About, Contact, FAQ, Projects…)
   - **Optional top navigation for pages**
+  - **Optional sitemap.xml output** (disabled by default)
   - **Automatic tag index and tag detail pages**
   - **Pagination** for large post archives
 - Outputs simple, portable HTML you can host anywhere:
@@ -95,6 +96,31 @@ Fine-tune the index with these keys:
 | `normalize_by_doc_len` | When `true`, divide scores by `sqrt(body_token_count)` so short/long posts are comparable. |
 
 See `docs/static_search.md` or `docs/search_spec.md` for a deeper walkthrough.
+
+## 🗺️ Sitemap
+
+Prefer crawlable archives? Enable the optional sitemap builder to emit a static
+`sitemap.xml` alongside the rest of your output. Just provide a canonical site
+URL and flip the feature switch:
+
+```toml
+[site]
+url = "https://example.com"
+
+[sitemap]
+enabled = true
+output = "sitemap.xml"
+include_index = true
+include_posts = true
+include_pages = true
+include_tags = true
+```
+
+The sitemap lists every published post, page, tag view, and search page (when
+enabled), sorted for stable diffs. Drafts are automatically skipped, and the
+default theme exposes a footer link when the feature is on. See `docs/sitemap.md`
+for full configuration details, including exclusion globs and custom output
+paths.
 
 Build with overrides:
 

@@ -82,6 +82,7 @@ def init_site(site_root: Path) -> None:
                 title = "My SimplicityPress Site"
                 subtitle = ""
                 base_url = ""
+                url = ""
                 language = "en"
                 timezone = "UTC"
 
@@ -113,6 +114,15 @@ def init_site(site_root: Path) -> None:
                 weight_title = 8.0
                 weight_tags = 6.0
                 normalize_by_doc_len = true
+
+                [sitemap]
+                enabled = false
+                output = "sitemap.xml"
+                include_tags = true
+                include_pages = true
+                include_posts = true
+                include_index = true
+                exclude_paths = []
                 """,
             ),
             encoding="utf-8",

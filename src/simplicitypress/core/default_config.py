@@ -11,6 +11,7 @@ default_config: dict = {
         "title": "My Site",
         "subtitle": "",
         "base_url": "",
+        "url": "",
         "language": "en",
         "timezone": "UTC",
     },
@@ -43,5 +44,14 @@ default_config: dict = {
         "weight_title": 8.0,
         "weight_tags": 6.0,
         "normalize_by_doc_len": True,
+    },
+    "sitemap": {
+        "enabled": False,
+        "output": "sitemap.xml",
+        "include_tags": True,
+        "include_pages": True,
+        "include_posts": True,
+        "include_index": True,
+        "exclude_paths": [],
     },
 }
