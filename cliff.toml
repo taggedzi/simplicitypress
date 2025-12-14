@@ -7,6 +7,7 @@ before v0.2.0 predate that workflow, so earlier sections may not list every
 historical commit.
 
 """
+unreleased = true
 body = """
 {%- if version -%}## {{ version }} - {{ timestamp | date(format="%Y-%m-%d") }}{% else %}## [Unreleased]{% endif %}
 {%- if previous_tag %}\n[Compare changes](https://github.com/taggedzi/simplicitypress/compare/{{ previous_tag }}...{{ tag }}){% endif %}
