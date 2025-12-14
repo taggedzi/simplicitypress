@@ -32,7 +32,6 @@ post.html
 page.html
 tags.html
 tag.html
-feed.xml
 ```
 
 ### ✔ Template Context Contracts
@@ -98,6 +97,7 @@ Does not affect templates unless documented.
 * No JavaScript will be mandatory
 * User themes will never be overwritten by upgrades
 * Template filenames will not be renamed or removed
+* Feeds will continue to be emitted via the built-in generator (no separate template required)
 
 ---
 

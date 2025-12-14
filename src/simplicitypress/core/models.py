@@ -36,6 +36,7 @@ class Config:
     author: dict
     search: dict
     sitemap: dict
+    feeds: dict
     paths: SitePaths
 
 
@@ -72,6 +73,7 @@ class Page:
     content_html: str
     source_path: Path
     url: str
+    date: datetime | None = None
     show_in_nav: bool = False
     nav_title: str | None = None
     nav_order: int = 1000

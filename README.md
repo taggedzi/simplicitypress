@@ -25,6 +25,7 @@ If your needs are simple - posts, pages, tags, basic navigation, and clean outpu
 - Ships with a **working default theme** so you can publish immediately.
 - Includes a **local development server** for previewing builds.
 - Optional **fully static search** that runs entirely in the browser (no backend).
+- Optional **RSS + Atom feeds** with configurable scopes and output paths.
 - Written to be **library-first**, so you can:
   - Integrate it into other Python applications
   - Wrap it with a GUI (future feature)
@@ -122,6 +123,34 @@ default theme exposes a footer link when the feature is on. See `docs/sitemap.md
 for full configuration details, including exclusion globs and custom output
 paths.
 
+## 📣 Feeds
+
+Ship RSS 2.0 and Atom 1.0 feeds for your readers. Feeds are disabled by
+default, require a canonical `site.url`, and only include posts unless you opt
+into pages.
+
+```toml
+[site]
+url = "https://example.com"
+
+[feeds]
+enabled = true
+rss_enabled = true
+atom_enabled = true
+max_items = 20
+include_posts = true
+include_pages = false
+include_tags = []
+[feeds.summary]
+mode = "excerpt"
+max_chars = 240
+```
+
+Additional knobs let you adjust output filenames, include drafts, or filter to
+specific tags. The default theme automatically adds `<link rel="alternate">`
+tags plus footer links when feeds are enabled. See `docs/feeds.md` for all
+options and examples.
+
 Build with overrides:
 
 ```bash
@@ -183,6 +212,8 @@ This is the **About** page body.
 
 - `nav_order` *(optional)*
   Controls global nav ordering (lower = earlier).
+- `date` *(optional)*
+  Provide a publish timestamp if you plan to include pages in feeds.
 
 Output:
 

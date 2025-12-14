@@ -123,6 +123,21 @@ def init_site(site_root: Path) -> None:
                 include_posts = true
                 include_index = true
                 exclude_paths = []
+
+                [feeds]
+                enabled = false
+                rss_enabled = true
+                atom_enabled = true
+                rss_output = "rss.xml"
+                atom_output = "atom.xml"
+                max_items = 20
+                include_drafts = false
+                include_pages = false
+                include_posts = true
+                include_tags = []
+                [feeds.summary]
+                mode = "excerpt"
+                max_chars = 240
                 """,
             ),
             encoding="utf-8",

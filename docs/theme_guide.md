@@ -53,7 +53,11 @@ templates/
 | `page.html`  | Static content pages                      |
 | `tags.html`  | Tag index page                            |
 | `tag.html`   | Posts for a specific tag                  |
-| `feed.xml`   | RSS/Atom feed template                    |
+
+RSS and Atom feeds are now generated directly by the build pipeline. The
+default theme exposes conditional `<link rel="alternate">` and footer links
+based on `site.feeds_enabled`, `site.rss_feed_enabled`, and
+`site.atom_feed_enabled`. See `docs/feeds.md` for configuration details.
 
 ### 📁 **Static Files**
 

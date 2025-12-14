@@ -44,7 +44,10 @@ A working theme must include:
 | `page.html`  | Standalone page (About, Contact, etc.)                  |
 | `tags.html`  | Tag index                                               |
 | `tag.html`   | Posts for a specific tag                                |
-| `feed.xml`   | RSS feed                                                |
+
+Feeds are emitted programmatically, so no `feed.xml` template is required.
+Themes should instead surface links using the `site.*feed*` flags described in
+`docs/template_context_tables.md`.
 
 **Tip:** Always start with `base.html` - everything else extends it.
 

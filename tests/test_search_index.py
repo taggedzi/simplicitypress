@@ -205,7 +205,6 @@ def _write_search_templates(templates_dir: Path) -> None:
             "{% extends 'base.html' %}{% block content %}" + name.capitalize() + "{% endblock %}",
             encoding="utf-8",
         )
-    (templates_dir / "feed.xml").write_text("<rss></rss>", encoding="utf-8")
     search_template = dedent(
         """\
         {% extends 'base.html' %}
