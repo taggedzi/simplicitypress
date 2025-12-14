@@ -36,6 +36,7 @@ dev = [
   "nox",
   "pyinstaller>=6.0",
   "cyclonedx-bom>=4.0",
+  "git-cliff>=2.6",
 ]
 
 [project.scripts]

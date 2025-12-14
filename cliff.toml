@@ -1,0 +1,71 @@
+[changelog]
+header = """
+# Changelog
+
+All notable changes to this project are documented in this file. The content is auto-generated from Conventional Commits via git-cliff.
+
+"""
+body = """
+{% if version %}## {{ version }} - {{ timestamp | date("%Y-%m-%d") }}{% else %}## [Unreleased]{% endif %}
+{% if previous_tag %}
+[Compare changes](https://github.com/taggedzi/simplicitypress/compare/{{ previous_tag }}...{{ tag }})
+{% endif %}
+{% if commits | length == 0 %}
+_No notable changes._
+{% else %}
+{% set breaking_commits = commits | selectattr("breaking") | list %}
+{% set regular_commits = commits | rejectattr("breaking") | list %}
+{% if breaking_commits | length > 0 %}
+### Breaking Changes
+{% for commit in breaking_commits %}
+- {{ commit.message | first_line }}{% if commit.scope %} (_{{ commit.scope }}_){% endif %} ([{{ commit.id | truncate(7, true, "") }}]({{ commit.link }}))
+{% endfor %}
+{% endif %}
+{% for group, grouped in regular_commits | group_by(attribute="group") %}
+{% if group %}
+### {{ group }}
+{% for commit in grouped %}
+- {{ commit.message | first_line }}{% if commit.scope %} (_{{ commit.scope }}_){% endif %} ([{{ commit.id | truncate(7, true, "") }}]({{ commit.link }}))
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
+"""
+footer = """
+---
+"""
+trim = true
+
+[git]
+commit_pretty = "%s"
+tag_pattern = "v[0-9]+(\\.[0-9]+)*"
+topo_order = true
+conventional_commits = true
+
+[[commit_types]]
+type = "feat"
+section = "Features"
+
+[[commit_types]]
+type = "fix"
+section = "Fixes"
+
+[[commit_types]]
+type = "docs"
+section = "Docs"
+
+[[commit_types]]
+type = "refactor"
+section = "Chore/CI/Refactor"
+
+[[commit_types]]
+type = "chore"
+section = "Chore/CI/Refactor"
+
+[[commit_types]]
+type = "ci"
+section = "Chore/CI/Refactor"
+
+[[commit_types]]
+type = "perf"
+section = "Performance"

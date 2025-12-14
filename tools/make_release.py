@@ -20,6 +20,7 @@ What it does:
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -28,6 +29,7 @@ from typing import NoReturn
 
 ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = ROOT / "pyproject.toml"
+CHANGELOG = ROOT / "CHANGELOG.md"
 
 
 def die(msg: str) -> NoReturn:
@@ -95,18 +97,40 @@ def update_version_in_pyproject(new_version: str) -> str:
     return old_version
 
 
+def ensure_git_cliff() -> None:
+    if shutil.which("git-cliff") is None:
+        die(
+            "git-cliff is required but was not found in PATH.\n"
+            "Install it via `pip install git-cliff` or see docs/release.md."
+        )
+
+
+def generate_changelog(version: str) -> None:
+    ensure_git_cliff()
+    tag = f"v{version}"
+    cmd = [
+        "git",
+        "cliff",
+        "--tag",
+        tag,
+        "--output",
+        str(CHANGELOG),
+    ]
+    run(cmd)
+
+
 def git_commit_and_tag(version: str) -> None:
     """Create a commit and an annotated tag for the new version."""
-    # Stage pyproject.toml
-    run(["git", "add", str(PYPROJECT)])
+    # Stage updated files
+    run(["git", "add", str(PYPROJECT), str(CHANGELOG)])
 
     # Commit
-    msg = f"Release v{version}"
+    msg = f"chore(release): update changelog for v{version}"
     run(["git", "commit", "-m", msg])
 
     # Tag
     tag = f"v{version}"
-    run(["git", "tag", "-a", tag, "-m", msg])
+    run(["git", "tag", "-a", tag, "-m", f"Release {tag}"])
 
     print()
     print(f"Created tag {tag}.")
@@ -128,6 +152,7 @@ def main(argv: list[str]) -> None:
 
     ensure_clean_git()
     update_version_in_pyproject(new_version)
+    generate_changelog(new_version)
     git_commit_and_tag(new_version)
 
 

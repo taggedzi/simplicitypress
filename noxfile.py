@@ -58,6 +58,21 @@ def spdx_fix(session: nox.Session) -> None:
 
 
 @nox.session
+def changelog(session: nox.Session) -> None:
+    """Regenerate CHANGELOG.md via git-cliff."""
+    session.install("git-cliff")
+    session.run("git", "cliff", "--output", "CHANGELOG.md")
+
+
+@nox.session
+def changelog_check(session: nox.Session) -> None:
+    """Verify CHANGELOG.md is up to date."""
+    session.install("git-cliff")
+    session.run("git", "cliff", "--output", "CHANGELOG.md")
+    session.run("git", "diff", "--exit-code", "CHANGELOG.md")
+
+
+@nox.session
 def sbom(session: nox.Session) -> None:
     """Generate a CycloneDX SBOM covering runtime dependencies only."""
     dist_dir = Path("dist")
