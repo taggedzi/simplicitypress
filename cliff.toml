@@ -54,6 +54,10 @@ skip_commits = [
 ]
 
 [[git.commit_parsers]]
+message = "(?i)(changelog|git.?cliff)"
+skip = true
+
+[[git.commit_parsers]]
 message = "^feat(\\([^)]+\\))?!?:"
 group = "Features"
 
