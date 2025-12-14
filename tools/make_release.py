@@ -20,7 +20,6 @@ What it does:
 from __future__ import annotations
 
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -97,24 +96,14 @@ def update_version_in_pyproject(new_version: str) -> str:
     return old_version
 
 
-def ensure_git_cliff() -> None:
-    if shutil.which("git-cliff") is None:
-        die(
-            "git-cliff is required but was not found in PATH.\n"
-            "Install it via `pip install git-cliff` or see docs/release.md."
-        )
-
-
 def generate_changelog(version: str) -> None:
-    ensure_git_cliff()
     tag = f"v{version}"
     cmd = [
-        "git",
-        "cliff",
-        "--tag",
+        sys.executable,
+        "tools/update_changelog.py",
+        "--update",
+        "--version",
         tag,
-        "--output",
-        str(CHANGELOG),
     ]
     run(cmd)
 

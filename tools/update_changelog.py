@@ -1,0 +1,260 @@
+#!/usr/bin/env python
+# SPDX-FileCopyrightText: 2025 SimplicityPress contributors
+# SPDX-License-Identifier: MIT
+"""Deterministic changelog generator based on git history."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterable, List
+
+SECTION_ORDER = ["Features", "Fixes", "Documentation", "Maintenance", "Other"]
+TYPE_TO_SECTION = {
+    "feat": "Features",
+    "fix": "Fixes",
+    "bug": "Fixes",
+    "docs": "Documentation",
+    "chore": "Maintenance",
+    "ci": "Maintenance",
+    "refactor": "Maintenance",
+    "test": "Maintenance",
+    "build": "Maintenance",
+    "perf": "Maintenance",
+}
+INTRO_LINES = [
+    "# Changelog",
+    "",
+    "This file is generated from git history via tools/update_changelog.py.",
+    "Releases before v0.2.0 predate that workflow, so earlier sections may not list every historical commit.",
+    "",
+]
+
+
+@dataclass
+class Commit:
+    short_hash: str
+    subject: str
+    section: str
+
+
+def run_git(*args: str) -> str:
+    """Run git and return stdout (stripped)."""
+    result = subprocess.run(
+        ["git", *args],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    return result.stdout.strip()
+
+
+def list_version_tags() -> List[str]:
+    output = run_git("tag", "--list", "v*", "--sort=-version:refname")
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
+
+def get_tag_date(tag: str) -> str:
+    return run_git("log", "-1", "--date=short", "--pretty=%ad", tag)
+
+
+def should_skip_subject(subject: str) -> bool:
+    lowered = subject.lower()
+    if lowered.startswith("merge "):
+        return True
+    if lowered.startswith("chore(release):"):
+        return True
+    if "update changelog" in lowered:
+        return True
+    if "changelog" in lowered:
+        return True
+    return False
+
+
+def categorize_subject(subject: str) -> str:
+    lowered = subject.lower()
+    if ":" in lowered:
+        prefix = lowered.split(":", 1)[0]
+        if prefix.endswith("!"):
+            prefix = prefix[:-1]
+        if "(" in prefix:
+            prefix = prefix.split("(", 1)[0]
+        if prefix in TYPE_TO_SECTION:
+            return TYPE_TO_SECTION[prefix]
+    for prefix, section in TYPE_TO_SECTION.items():
+        if lowered.startswith(f"{prefix} "):
+            return section
+    return "Other"
+
+
+def parse_commit_line(line: str) -> Commit | None:
+    if not line:
+        return None
+    try:
+        short_hash, subject = line.split("\t", 1)
+    except ValueError:
+        return None
+    subject = subject.strip()
+    if not subject or should_skip_subject(subject):
+        return None
+    section = categorize_subject(subject)
+    return Commit(short_hash=short_hash, subject=subject, section=section)
+
+
+def gather_commits(range_spec: str | None) -> List[Commit]:
+    args = ["log", "--pretty=format:%h%x09%s", "--no-merges"]
+    if range_spec:
+        args.append(range_spec)
+    output = run_git(*args)
+    commits: List[Commit] = []
+    for line in output.splitlines():
+        commit = parse_commit_line(line)
+        if commit:
+            commits.append(commit)
+    return commits
+
+
+def group_commits(commits: Iterable[Commit]) -> dict[str, List[Commit]]:
+    grouped: dict[str, List[Commit]] = {name: [] for name in SECTION_ORDER}
+    for commit in commits:
+        grouped.setdefault(commit.section, []).append(commit)
+    return grouped
+
+
+def format_section(title: str, commits: List[Commit]) -> List[str]:
+    lines: List[str] = [f"## {title}", ""]
+    if not commits:
+        lines.append("_No notable changes._")
+        lines.append("")
+        return lines
+
+    grouped = group_commits(commits)
+    for section_name in SECTION_ORDER:
+        section_commits = grouped.get(section_name) or []
+        if not section_commits:
+            continue
+        lines.append(f"### {section_name}")
+        lines.append("")
+        for commit in section_commits:
+            lines.append(f"- {commit.subject} ({commit.short_hash})")
+        lines.append("")
+    return lines
+
+
+def build_release_sections(tags: List[str]) -> List[List[str]]:
+    sections: List[List[str]] = []
+    for idx, tag in enumerate(tags):
+        older = tags[idx + 1] if idx + 1 < len(tags) else None
+        range_spec = f"{older}..{tag}" if older else tag
+        commits = gather_commits(range_spec)
+        date_str = get_tag_date(tag)
+        sections.append(format_section(f"{tag} - {date_str}", commits))
+    return sections
+
+
+def build_unreleased_section(
+    base_ref: str | None,
+    include: bool,
+) -> List[str]:
+    if not include:
+        return []
+    range_spec = f"{base_ref}..HEAD" if base_ref else None
+    commits = gather_commits(range_spec)
+    return format_section("Unreleased", commits)
+
+
+def render_changelog(
+    include_unreleased: bool = True,
+    version_override: str | None = None,
+    since_ref: str | None = None,
+) -> str:
+    tags = list_version_tags()
+    release_sections: List[List[str]] = []
+    latest_ref = since_ref or (tags[0] if tags else None)
+
+    if version_override and version_override not in tags:
+        base = since_ref or (tags[0] if tags else None)
+        range_spec = f"{base}..HEAD" if base else None
+        commits = gather_commits(range_spec)
+        today = dt.date.today().isoformat()
+        release_sections.append(format_section(f"{version_override} - {today}", commits))
+        latest_ref = "HEAD"
+    elif version_override:
+        start_idx = tags.index(version_override)
+        tags = tags[: start_idx + 1]
+
+    lines: List[str] = INTRO_LINES.copy()
+    lines.extend(build_unreleased_section(latest_ref, include_unreleased))
+    if lines and lines[-1] != "":
+        lines.append("")
+    release_sections.extend(build_release_sections(tags))
+    for section in release_sections:
+        lines.extend(section)
+    content = "\n".join(lines).rstrip("\n") + "\n"
+    return content.replace("\r\n", "\n")
+
+
+def write_changelog(content: str, path: Path) -> None:
+    normalized = content.replace("\r\n", "\n").rstrip("\n") + "\n"
+    tmp_path = path.with_suffix(".tmp")
+    tmp_path.write_text(normalized, encoding="utf-8", newline="\n")
+    tmp_path.replace(path)
+
+
+def check_changelog(content: str, path: Path) -> bool:
+    existing = ""
+    if path.exists():
+        existing = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    normalized = content.replace("\r\n", "\n")
+    return existing == normalized
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Update SimplicityPress changelog.")
+    parser.add_argument("--update", action="store_true", help="Rewrite CHANGELOG.md")
+    parser.add_argument("--check", action="store_true", help="Check if changelog is up to date")
+    parser.add_argument("--version", help="Regenerate up to a specific version/tag")
+    parser.add_argument(
+        "--since",
+        help="Override the reference used for the Unreleased section base",
+    )
+    parser.add_argument(
+        "--include-unreleased",
+        default=True,
+        action=argparse.BooleanOptionalAction,
+        help="Include the Unreleased section (default: true)",
+    )
+    parser.add_argument(
+        "--output-file",
+        default="CHANGELOG.md",
+        help="Override the changelog path (default: CHANGELOG.md)",
+    )
+    args = parser.parse_args(argv)
+    if not args.update and not args.check:
+        parser.error("One of --update or --check must be provided.")
+    return args
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv or sys.argv[1:])
+    output_path = Path(args.output_file)
+    content = render_changelog(
+        include_unreleased=args.include_unreleased,
+        version_override=args.version,
+        since_ref=args.since,
+    )
+    if args.check:
+        if not check_changelog(content, output_path):
+            return 1
+    if args.update:
+        write_changelog(content, output_path)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -59,18 +59,14 @@ def spdx_fix(session: nox.Session) -> None:
 
 @nox.session
 def changelog(session: nox.Session) -> None:
-    """Regenerate CHANGELOG.md via git-cliff."""
-    session.install("git-cliff")
-    # include full history; cliff.toml already forces an Unreleased section
-    session.run("git", "cliff", "--output", "CHANGELOG.md", external=True)
+    """Regenerate CHANGELOG.md via the local script."""
+    session.run("python", "tools/update_changelog.py", "--update")
 
 
 @nox.session
 def changelog_check(session: nox.Session) -> None:
     """Verify CHANGELOG.md is up to date."""
-    session.install("git-cliff")
-    session.run("git", "cliff", "--output", "CHANGELOG.md", external=True)
-    session.run("git", "diff", "--exit-code", "CHANGELOG.md", external=True)
+    session.run("python", "tools/update_changelog.py", "--check")
 
 
 @nox.session

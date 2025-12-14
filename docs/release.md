@@ -5,8 +5,7 @@ artifacts, SPDX metadata, an SBOM, and generated release notes.
 
 ## Prerequisites
 
-- Install development tooling (including `git-cliff`) via `pip install .[dev]`
-  or install `git-cliff` separately.
+- Install development tooling via `pip install .[dev]`.
 - Ensure your git working tree is clean before starting.
 
 ## Cutting a release
@@ -22,7 +21,7 @@ artifacts, SPDX metadata, an SBOM, and generated release notes.
 
    - Verify the working tree is clean.
    - Update `pyproject.toml` with the new version.
-   - Regenerate `CHANGELOG.md` via `git-cliff`.
+   - Regenerate `CHANGELOG.md` via `tools/update_changelog.py`.
    - Commit both files with a message like
      `chore(release): update changelog for v0.8.0`.
    - Create the annotated git tag `v0.8.0`.
@@ -41,14 +40,12 @@ generated changelog, so no manual editing is required.
 
 ## Regenerating the changelog manually
 
-Two Nox sessions wrap the `git-cliff` invocation:
+Two Nox sessions wrap the deterministic generator in `tools/update_changelog.py`:
 
 - `nox -s changelog` rewrites `CHANGELOG.md` based on the current commit
-  history. Run this after rebasing or when you want to preview the next release
-  notes.
-- `nox -s changelog_check` is useful in CI to ensure that the committed
-  changelog matches the state of the repository.
+  history. Run this after rebasing or when you want to preview the next release.
+- `nox -s changelog_check` ensures that the committed changelog matches the
+  repository state (CI uses this).
 
-These sessions rely on `cliff.toml`, which maps Conventional Commit types to
-high-level sections (Breaking, Features, Fixes, Docs, Maintenance) and creates
-compare links between tags.
+See `docs/changelog.md` for details on how the script groups commits, the
+available CLI flags, and how to generate release notes for a specific tag.

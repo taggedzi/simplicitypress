@@ -145,8 +145,7 @@ jobs:
       - name: Generate release notes from changelog
         run: |
           python -m pip install --upgrade pip
-          python -m pip install git-cliff
-          git cliff --tag ${{ github.ref_name }} --output CHANGELOG_LATEST.md
+          python tools/update_changelog.py --update --version ${{ github.ref_name }} --include-unreleased=false --output-file CHANGELOG_LATEST.md
 
       # Create or update the GitHub Release for this tag and upload our files
       - name: Create GitHub Release and upload assets
