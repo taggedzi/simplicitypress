@@ -219,6 +219,9 @@ def render_changelog(
 
 def normalize_text(text: str) -> str:
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    # Normalize “weird spaces” so changelog output is stable across platforms/editors.
+    normalized = normalized.replace("\u202f", " ")  # narrow no-break space
+    normalized = normalized.replace("\u00a0", " ")  # no-break space (optional but helpful)
     # Handle historical mojibake where U+202F narrow no-break space became 'â€¯'
     normalized = normalized.replace("â€¯", " ")
     return normalized.rstrip("\n") + "\n"
