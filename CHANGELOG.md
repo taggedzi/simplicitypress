@@ -1,13 +1,13 @@
 # Changelog
 
 This file is auto-generated from Conventional Commits via git-cliff. Releases
-before v0.2.0 predate that workflow, so earlier sections may omit historical
-commits.
+before v0.2.0 predate that workflow, so earlier sections may not list every
+historical commit.
 
 ## [Unreleased]
 
 ### Maintenance
-- chore: automate changelog generation and release notes (cd4fa76)
+- chore(changelog): tighten git-cliff config and regenerate changelog (0d86708)
 
 ## v0.2.0 - 2025-12-14
 [Compare changes](https://github.com/taggedzi/simplicitypress/compare/v0.1.7...v0.2.0)
