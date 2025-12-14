@@ -281,7 +281,7 @@ def build_site(
         render_to_file(env, "tag.html", context, target)
 
         if sitemap_include_tags:
-            add_sitemap_entry(tag_entry["url"])
+            add_sitemap_entry(str(tag_entry["url"]))
 
     # RSS/Atom-style feed (RSS 2.0 for now).
     feed_items = int(config.build.get("feed_items", 20)) or 20
