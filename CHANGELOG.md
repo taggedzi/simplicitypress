@@ -11,6 +11,7 @@ Releases before v0.2.0 predate that workflow, so earlier sections may not list e
 
 ### Documentation
 
+- docs: add AI assistance disclosure (67fb7b5)
 - docs: add AI assistance disclosure (b6f3253)
 
 ## v0.2.2 - 2025-12-14
