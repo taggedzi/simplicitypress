@@ -78,11 +78,6 @@ def _basic_site(tmp_path: Path) -> Path:
         "{% extends 'base.html' %}{% block content %}Tag{% endblock %}",
         encoding="utf-8",
     )
-    (site_root / "templates" / "feed.xml").write_text(
-        "<rss><channel></channel></rss>",
-        encoding="utf-8",
-    )
-
     # Minimal CSS
     (site_root / "static" / "css" / "style.css").write_text("body{}", encoding="utf-8")
 
@@ -98,6 +93,4 @@ def test_build_smoke(tmp_path: Path) -> None:
     assert (output / "index.html").exists()
     assert (output / "posts" / "post1" / "index.html").exists()
     assert (output / "tags" / "index.html").exists()
-    assert (output / "feed.xml").exists()
     assert (output / "static" / "css" / "style.css").exists()
-

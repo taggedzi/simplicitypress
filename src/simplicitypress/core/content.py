@@ -105,6 +105,15 @@ def discover_content(config: Config) -> tuple[list[Post], list[Page]]:
         except (TypeError, ValueError):
             nav_order = 1000
 
+        raw_page_date = metadata.get("date")
+        page_date = None
+        if raw_page_date:
+            try:
+                page_date = datetime.fromisoformat(str(raw_page_date))
+            except (TypeError, ValueError) as exc:
+                msg = f"Invalid 'date' value in page front matter for {path}: {raw_page_date!r}"
+                raise ValueError(msg) from exc
+
         pages.append(
             Page(
                 title=str(title),
@@ -112,6 +121,7 @@ def discover_content(config: Config) -> tuple[list[Post], list[Page]]:
                 content_html=body_html,
                 source_path=path,
                 url=url,
+                date=page_date,
                 show_in_nav=show_in_nav,
                 nav_title=str(nav_title) if nav_title is not None else None,
                 nav_order=nav_order,

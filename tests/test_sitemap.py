@@ -108,11 +108,6 @@ def _write_minimal_site(
         "{% extends 'base.html' %}{% block content %}Tag{% endblock %}",
         encoding="utf-8",
     )
-    (site_root / "templates" / "feed.xml").write_text(
-        "<rss><channel></channel></rss>",
-        encoding="utf-8",
-    )
-
     (site_root / "static" / "css" / "style.css").write_text("body{}", encoding="utf-8")
     return site_root
 

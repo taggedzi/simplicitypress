@@ -15,8 +15,16 @@ This is a quick-reference guide for theme designers, showing exactly which varia
 | `author`    | dict | Values from `[author]` in site.toml                |
 | `nav_items` | list | Pages that opted into navigation via `show_in_nav` |
 
-`site` also receives runtime flags such as `sitemap_enabled` so templates can
-toggle UI (for example, hiding the sitemap link until it exists).
+`site` also receives runtime flags such as:
+
+- `sitemap_enabled`
+- `feeds_enabled`
+- `rss_feed_enabled`
+- `atom_feed_enabled`
+- `rss_feed_url`
+- `atom_feed_url`
+
+These allow templates to toggle footer/head links when artifacts exist.
 
 ---
 
@@ -65,10 +73,3 @@ toggle UI (for example, hiding the sitemap link until it exists).
 
 ---
 
-# 7. feed.xml (RSS/Atom Feed)
-
-| Variable  | Type       | Description                |
-| --------- | ---------- | -------------------------- |
-| `site`    | dict       | Site metadata              |
-| `posts`   | list[Post] | Recent posts               |
-| `updated` | datetime   | Timestamp of latest update |

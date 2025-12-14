@@ -8,6 +8,12 @@
     {% if site.subtitle %} - {{ site.subtitle }}{% endif %}
   </title>
   <link rel="stylesheet" href="{{ '/static/css/style.css' }}">
+  {% if site.feeds_enabled and site.rss_feed_enabled and site.rss_feed_url %}
+  <link rel="alternate" type="application/rss+xml" title="{{ site.title }} RSS" href="{{ site.rss_feed_url }}">
+  {% endif %}
+  {% if site.feeds_enabled and site.atom_feed_enabled and site.atom_feed_url %}
+  <link rel="alternate" type="application/atom+xml" title="{{ site.title }} Atom" href="{{ site.atom_feed_url }}">
+  {% endif %}
 </head>
 <body>
   <a class="sp-skip-link" href="#main-content">Skip to content</a>
@@ -45,6 +51,14 @@
         Powered by <span class="sp-footer-link">SimplicityPress</span>.
         {% if site.sitemap_enabled %}
           <a href="/sitemap.xml" class="sp-footer-link">Sitemap</a>.
+        {% endif %}
+        {% if site.feeds_enabled %}
+          {% if site.rss_feed_enabled and site.rss_feed_url %}
+            <a href="{{ site.rss_feed_url }}" class="sp-footer-link">RSS</a>.
+          {% endif %}
+          {% if site.atom_feed_enabled and site.atom_feed_url %}
+            <a href="{{ site.atom_feed_url }}" class="sp-footer-link">Atom</a>.
+          {% endif %}
         {% endif %}
       </p>
     </div>

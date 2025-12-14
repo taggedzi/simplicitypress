@@ -26,7 +26,6 @@ default_config: dict = {
     "build": {
         "posts_per_page": 10,
         "include_drafts": False,
-        "feed_items": 20,
     },
     "author": {
         "name": "",
@@ -53,5 +52,21 @@ default_config: dict = {
         "include_posts": True,
         "include_index": True,
         "exclude_paths": [],
+    },
+    "feeds": {
+        "enabled": False,
+        "rss_enabled": True,
+        "atom_enabled": True,
+        "rss_output": "rss.xml",
+        "atom_output": "atom.xml",
+        "max_items": 20,
+        "include_drafts": False,
+        "include_pages": False,
+        "include_posts": True,
+        "include_tags": [],
+        "summary": {
+            "mode": "excerpt",
+            "max_chars": 240,
+        },
     },
 }

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Callable, Optional, Sequence
 
 from .content import discover_content
+from .feeds import FeedConfigError, generate_feeds, resolve_feed_settings
 from .fs import copy_static_tree
 from .models import Config, Page, Post, ProgressEvent, Stage
 from .render import create_environment, render_to_file
@@ -146,6 +147,17 @@ def build_site(
         else:
             raise TypeError("sitemap.exclude_paths must be a list of strings")
 
+    feeds_cfg = config.feeds or {}
+    feed_settings = None
+    try:
+        feed_settings = resolve_feed_settings(
+            feeds_cfg,
+            output_dir=config.paths.output_dir,
+            site_url=str(config.site.get("url", "")).strip(),
+        )
+    except FeedConfigError as exc:
+        raise ValueError(str(exc)) from exc
+
     def add_sitemap_entry(path: str, lastmod: datetime | None = None) -> None:
         if not sitemap_enabled:
             return
@@ -168,6 +180,11 @@ def build_site(
 
     site_context = dict(config.site)
     site_context["sitemap_enabled"] = sitemap_enabled
+    site_context["feeds_enabled"] = feed_settings is not None
+    site_context["rss_feed_enabled"] = bool(feed_settings and feed_settings.rss_output)
+    site_context["atom_feed_enabled"] = bool(feed_settings and feed_settings.atom_output)
+    site_context["rss_feed_url"] = feed_settings.rss_href if feed_settings else None
+    site_context["atom_feed_url"] = feed_settings.atom_href if feed_settings else None
 
     base_context: dict[str, object] = {
         "site": site_context,
@@ -283,17 +300,14 @@ def build_site(
         if sitemap_include_tags:
             add_sitemap_entry(str(tag_entry["url"]))
 
-    # RSS/Atom-style feed (RSS 2.0 for now).
-    feed_items = int(config.build.get("feed_items", 20)) or 20
-    recent_posts = posts[:feed_items]
-    feed_target = config.paths.output_dir / "feed.xml"
-    feed_context: dict[str, object] = {
-        "site": site_context,
-        "author": config.author,
-        "posts": recent_posts,
-    }
-    render_to_file(env, "feed.xml", feed_context, feed_target)
-    emit(Stage.RENDERING_TEMPLATES, current=1, total=1, message="Rendering feed.xml")
+    if feed_settings is not None:
+        generate_feeds(
+            settings=feed_settings,
+            posts=posts,
+            pages=pages,
+            site=site_context,
+            author=config.author,
+        )
 
     if search_builder is not None:
         search_builder.build_assets(posts, pages, env, base_context)
