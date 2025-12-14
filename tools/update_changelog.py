@@ -42,6 +42,12 @@ class Commit:
     section: str
 
 
+@dataclass
+class RenderInfo:
+    latest_tag: str | None
+    unreleased_range: str | None
+
+
 def run_git(*args: str) -> str:
     """Run git and return stdout (stripped)."""
     result = subprocess.run(
@@ -160,19 +166,20 @@ def build_release_sections(tags: List[str]) -> List[List[str]]:
 def build_unreleased_section(
     base_ref: str | None,
     include: bool,
-) -> List[str]:
+) -> tuple[List[str], str | None]:
     if not include:
-        return []
+        return ([], None)
     range_spec = f"{base_ref}..HEAD" if base_ref else None
     commits = gather_commits(range_spec)
-    return format_section("Unreleased", commits)
+    descriptor = range_spec or "<root>..HEAD"
+    return format_section("Unreleased", commits), descriptor
 
 
 def render_changelog(
     include_unreleased: bool = True,
     version_override: str | None = None,
     since_ref: str | None = None,
-) -> str:
+) -> tuple[str, RenderInfo]:
     tags = list_version_tags()
     release_sections: List[List[str]] = []
     latest_ref = since_ref or (tags[0] if tags else None)
@@ -189,14 +196,16 @@ def render_changelog(
         tags = tags[: start_idx + 1]
 
     lines: List[str] = INTRO_LINES.copy()
-    lines.extend(build_unreleased_section(latest_ref, include_unreleased))
+    unreleased_lines, range_desc = build_unreleased_section(latest_ref, include_unreleased)
+    lines.extend(unreleased_lines)
     if lines and lines[-1] != "":
         lines.append("")
     release_sections.extend(build_release_sections(tags))
     for section in release_sections:
         lines.extend(section)
     content = "\n".join(lines).rstrip("\n") + "\n"
-    return content.replace("\r\n", "\n")
+    info = RenderInfo(latest_tag=latest_ref, unreleased_range=range_desc)
+    return content.replace("\r\n", "\n"), info
 
 
 def write_changelog(content: str, path: Path) -> None:
@@ -243,12 +252,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
     output_path = Path(args.output_file)
-    content = render_changelog(
+    content, info = render_changelog(
         include_unreleased=args.include_unreleased,
         version_override=args.version,
         since_ref=args.since,
     )
     if args.check:
+        latest = info.latest_tag or "<none>"
+        rng = info.unreleased_range or "<unreleased disabled>"
+        print(f"[changelog] latest tag: {latest}")
+        print(f"[changelog] unreleased range: {rng}")
         if not check_changelog(content, output_path):
             return 1
     if args.update:

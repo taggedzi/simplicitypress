@@ -38,6 +38,10 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Fetch tags
+        run: git fetch --force --tags
 
       - name: Set up Python
         uses: actions/setup-python@v5
