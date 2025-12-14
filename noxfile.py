@@ -14,6 +14,7 @@ from pathlib import Path
 import hashlib
 import shutil
 import tomllib
+import os
 import nox
 
 PYTHON_VERSIONS = ["3.11", "3.12", "3.13"]
@@ -58,24 +59,55 @@ def spdx_fix(session: nox.Session) -> None:
 
 @nox.session
 def sbom(session: nox.Session) -> None:
-    """Generate a CycloneDX SBOM covering runtime dependencies."""
+    """Generate a CycloneDX SBOM covering runtime dependencies only."""
     dist_dir = Path("dist")
     dist_dir.mkdir(parents=True, exist_ok=True)
     output = dist_dir / "sbom.cdx.json"
-    session.install(".")
+
+    # Create a clean runtime-only virtual environment
+    runtime_env = Path(".nox") / "sbom-runtime"
+    if runtime_env.exists():
+        shutil.rmtree(runtime_env)
+
+    session.run(
+        "python",
+        "-m",
+        "venv",
+        str(runtime_env),
+        external=True,
+    )
+
+    runtime_python = runtime_env / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+
+    # Install runtime dependencies only
+    session.run(runtime_python, "-m", "pip", "install", ".", external=True)
+
+    # Install SBOM tool in the *nox* environment (not runtime env)
     session.install("cyclonedx-bom")
+
+    # Generate SBOM by scanning the runtime env
     session.run(
         "python",
         "-m",
         "cyclonedx_py",
         "environment",
+        str(runtime_env),
         "--output-format",
         "JSON",
         "--output-file",
         str(output),
         "--output-reproducible",
+        "--pyproject",
+        "pyproject.toml",
     )
+
     session.log(f"SBOM written to {output}")
+
+    session.run(
+        "python",
+        "tools/filter_sbom.py",
+        str(output),
+    )
 
 
 @nox.session
