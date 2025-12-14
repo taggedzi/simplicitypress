@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from math import ceil
+from pathlib import Path
 from typing import Callable, Optional, Sequence
 
 from .content import discover_content
@@ -9,6 +11,7 @@ from .fs import copy_static_tree
 from .models import Config, Page, Post, ProgressEvent, Stage
 from .render import create_environment, render_to_file
 from .search_index import SearchAssetsBuilder
+from .sitemap import SitemapEntry, generate_sitemap
 
 
 INDEX_FILENAME = "index.html"
@@ -106,6 +109,48 @@ def build_site(
 
     env = create_environment(config.paths.templates_dir)
 
+    sitemap_cfg = config.sitemap or {}
+    sitemap_enabled = bool(sitemap_cfg.get("enabled", False))
+    sitemap_include_posts = bool(sitemap_cfg.get("include_posts", True))
+    sitemap_include_pages = bool(sitemap_cfg.get("include_pages", True))
+    sitemap_include_tags = bool(sitemap_cfg.get("include_tags", True))
+    sitemap_include_index = bool(sitemap_cfg.get("include_index", True))
+    sitemap_site_url: str | None = None
+    sitemap_output_path: Path | None = None
+    sitemap_exclude_patterns: Sequence[str] | None = None
+    sitemap_entries: list[SitemapEntry] = []
+
+    if sitemap_enabled:
+        site_url = str(config.site.get("url", "")).strip()
+        if not site_url:
+            raise ValueError("sitemap.enabled = true requires site.url to be set")
+        sitemap_site_url = site_url
+
+        raw_output = str(sitemap_cfg.get("output", "sitemap.xml") or "sitemap.xml").strip()
+        if not raw_output:
+            raw_output = "sitemap.xml"
+        output_path = Path(raw_output)
+        if output_path.is_absolute():
+            raise ValueError("sitemap.output must be relative to the output directory")
+        if any(part == ".." for part in output_path.parts):
+            raise ValueError("sitemap.output cannot traverse outside the output directory")
+        if str(output_path) in ("", "."):
+            output_path = Path("sitemap.xml")
+        sitemap_output_path = config.paths.output_dir / output_path
+
+        raw_excludes = sitemap_cfg.get("exclude_paths")
+        if raw_excludes is None:
+            sitemap_exclude_patterns = []
+        elif isinstance(raw_excludes, (list, tuple)):
+            sitemap_exclude_patterns = list(raw_excludes)
+        else:
+            raise TypeError("sitemap.exclude_paths must be a list of strings")
+
+    def add_sitemap_entry(path: str, lastmod: datetime | None = None) -> None:
+        if not sitemap_enabled:
+            return
+        sitemap_entries.append(SitemapEntry(path=path, lastmod=lastmod))
+
     search_builder: SearchAssetsBuilder | None = None
     search_nav_extra: list[dict[str, object]] = []
     if bool(config.search.get("enabled", False)):
@@ -121,8 +166,11 @@ def build_site(
 
     nav_items = _build_nav_items(pages, extra=search_nav_extra if search_nav_extra else None)
 
+    site_context = dict(config.site)
+    site_context["sitemap_enabled"] = sitemap_enabled
+
     base_context: dict[str, object] = {
-        "site": config.site,
+        "site": site_context,
         "author": config.author,
         "nav_items": nav_items,
         "search_enabled": search_builder is not None,
@@ -165,6 +213,9 @@ def build_site(
         }
         render_to_file(env, INDEX_FILENAME, context, output_path)
 
+        if sitemap_include_index:
+            add_sitemap_entry(url)
+
     # Individual post pages.
     for post in posts:
         target = config.paths.output_dir / "posts" / post.slug / INDEX_FILENAME
@@ -174,6 +225,9 @@ def build_site(
         }
         render_to_file(env, "post.html", context, target)
 
+        if sitemap_include_posts and not post.draft:
+            add_sitemap_entry(post.url, lastmod=post.date)
+
     # Static pages.
     for page in pages:
         target = config.paths.output_dir / page.slug / INDEX_FILENAME
@@ -182,6 +236,9 @@ def build_site(
             "page": page,
         }
         render_to_file(env, "page.html", context, target)
+
+        if sitemap_include_pages:
+            add_sitemap_entry(page.url)
 
     # Tags index and detail pages.
     tags_data: list[dict[str, object]] = []
@@ -206,6 +263,9 @@ def build_site(
         tags_index_target,
     )
 
+    if sitemap_include_tags:
+        add_sitemap_entry("/tags/")
+
     # Tag detail pages.
     for tag_entry in tags_data:
         tag_name = str(tag_entry["name"])
@@ -220,12 +280,15 @@ def build_site(
         }
         render_to_file(env, "tag.html", context, target)
 
+        if sitemap_include_tags:
+            add_sitemap_entry(tag_entry["url"])
+
     # RSS/Atom-style feed (RSS 2.0 for now).
     feed_items = int(config.build.get("feed_items", 20)) or 20
     recent_posts = posts[:feed_items]
     feed_target = config.paths.output_dir / "feed.xml"
     feed_context: dict[str, object] = {
-        "site": config.site,
+        "site": site_context,
         "author": config.author,
         "posts": recent_posts,
     }
@@ -234,11 +297,21 @@ def build_site(
 
     if search_builder is not None:
         search_builder.build_assets(posts, pages, env, base_context)
+        if sitemap_include_pages:
+            add_sitemap_entry(search_builder.page_url)
 
     # Static assets.
     emit(Stage.COPYING_STATIC, current=0, total=1, message="Copying static assets")
     static_dir = config.paths.static_dir
     output_static_dir = config.paths.output_dir / "static"
     copy_static_tree(static_dir, output_static_dir)
+
+    if sitemap_enabled and sitemap_site_url and sitemap_output_path:
+        generate_sitemap(
+            sitemap_entries,
+            site_url=sitemap_site_url,
+            output_path=sitemap_output_path,
+            exclude_patterns=sitemap_exclude_patterns,
+        )
 
     emit(Stage.DONE, current=1, total=1, message="Build completed")

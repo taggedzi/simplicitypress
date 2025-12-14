@@ -43,6 +43,9 @@
       <p class="sp-footer-text">
         &copy; {{ site.title }}{% if author.name %} - {{ author.name }}{% endif %}.
         Powered by <span class="sp-footer-link">SimplicityPress</span>.
+        {% if site.sitemap_enabled %}
+          <a href="/sitemap.xml" class="sp-footer-link">Sitemap</a>.
+        {% endif %}
       </p>
     </div>
   </footer>

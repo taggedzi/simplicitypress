@@ -15,6 +15,9 @@ This is a quick-reference guide for theme designers, showing exactly which varia
 | `author`    | dict | Values from `[author]` in site.toml                |
 | `nav_items` | list | Pages that opted into navigation via `show_in_nav` |
 
+`site` also receives runtime flags such as `sitemap_enabled` so templates can
+toggle UI (for example, hiding the sitemap link until it exists).
+
 ---
 
 # 2. index.html (Home Page)

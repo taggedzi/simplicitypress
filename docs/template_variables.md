@@ -24,10 +24,16 @@ Example fields:
   "title": "My Blog",
   "subtitle": "thoughts & notes",
   "base_url": "",
+  "url": "https://example.com",
   "language": "en",
-  "timezone": "UTC"
+  "timezone": "UTC",
+  "sitemap_enabled": true
 }
 ```
+
+SimplicityPress adds the boolean `sitemap_enabled` at build time so themes can
+toggle links (the default footer hides the sitemap link until generation is
+enabled).
 
 ### `author`
 

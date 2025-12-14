@@ -91,5 +91,6 @@ def load_config(site_root: Path) -> Config:
         build=merged.get("build", {}),
         author=merged.get("author", {}),
         search=merged.get("search", {}),
+        sitemap=merged.get("sitemap", {}),
         paths=site_paths,
     )
