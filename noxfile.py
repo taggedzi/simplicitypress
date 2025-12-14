@@ -61,14 +61,14 @@ def spdx_fix(session: nox.Session) -> None:
 def changelog(session: nox.Session) -> None:
     """Regenerate CHANGELOG.md via git-cliff."""
     session.install("git-cliff")
-    session.run("git", "cliff", "--output", "CHANGELOG.md")
+    session.run("git", "cliff", "--output", "CHANGELOG.md", external=True)
 
 
 @nox.session
 def changelog_check(session: nox.Session) -> None:
     """Verify CHANGELOG.md is up to date."""
     session.install("git-cliff")
-    session.run("git", "cliff", "--output", "CHANGELOG.md")
+    session.run("git", "cliff", "--output", "CHANGELOG.md", external=True)
     session.run("git", "diff", "--exit-code", "CHANGELOG.md")
 
 

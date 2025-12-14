@@ -2,38 +2,40 @@
 header = """
 # Changelog
 
-All notable changes to this project are documented in this file. The content is auto-generated from Conventional Commits via git-cliff.
+This file is auto-generated from Conventional Commits via git-cliff.
 
 """
 body = """
-{% if version %}## {{ version }} - {{ timestamp | date("%Y-%m-%d") }}{% else %}## [Unreleased]{% endif %}
-{% if previous_tag %}
-[Compare changes](https://github.com/taggedzi/simplicitypress/compare/{{ previous_tag }}...{{ tag }})
-{% endif %}
+{% if version %}## {{ version }} - {{ timestamp | date(format="%Y-%m-%d") }}{% else %}## [Unreleased]{% endif %}
+{% if previous_tag %}[Compare changes](https://github.com/taggedzi/simplicitypress/compare/{{ previous_tag }}...{{ tag }}){% endif %}
 {% if commits | length == 0 %}
 _No notable changes._
 {% else %}
-{% set breaking_commits = commits | selectattr("breaking") | list %}
-{% set regular_commits = commits | rejectattr("breaking") | list %}
-{% if breaking_commits | length > 0 %}
+{% set_global printed_breaking = false %}
+{% for commit in commits %}
+{% if commit.breaking %}
+{% if not printed_breaking %}
 ### Breaking Changes
-{% for commit in breaking_commits %}
-- {{ commit.message | first_line }}{% if commit.scope %} (_{{ commit.scope }}_){% endif %} ([{{ commit.id | truncate(7, true, "") }}]({{ commit.link }}))
-{% endfor %}
+{% set_global printed_breaking = true %}
 {% endif %}
-{% for group, grouped in regular_commits | group_by(attribute="group") %}
-{% if group %}
-### {{ group }}
-{% for commit in grouped %}
-- {{ commit.message | first_line }}{% if commit.scope %} (_{{ commit.scope }}_){% endif %} ([{{ commit.id | truncate(7, true, "") }}]({{ commit.link }}))
-{% endfor %}
+- {{ commit.message | split(pat="\n") | first }} ({{ commit.id | truncate(length=7, end="") }})
 {% endif %}
+{% endfor %}
+{% for section in ["Features", "Fixes", "Documentation", "Maintenance"] %}
+{% set_global printed_section = false %}
+{% for commit in commits %}
+{% if commit.group == section and not commit.breaking %}
+{% if not printed_section %}
+### {{ section }}
+{% set_global printed_section = true %}
+{% endif %}
+- {{ commit.message | split(pat="\n") | first }} ({{ commit.id | truncate(length=7, end="") }})
+{% endif %}
+{% endfor %}
 {% endfor %}
 {% endif %}
 """
-footer = """
----
-"""
+footer = ""
 trim = true
 
 [git]
@@ -41,6 +43,8 @@ commit_pretty = "%s"
 tag_pattern = "v[0-9]+(\\.[0-9]+)*"
 topo_order = true
 conventional_commits = true
+filter_commits = true
+skip_commits = ["^Merge", "^Release"]
 
 [[commit_types]]
 type = "feat"
@@ -51,21 +55,33 @@ type = "fix"
 section = "Fixes"
 
 [[commit_types]]
+type = "bug"
+section = "Fixes"
+
+[[commit_types]]
 type = "docs"
-section = "Docs"
+section = "Documentation"
 
 [[commit_types]]
 type = "refactor"
-section = "Chore/CI/Refactor"
-
-[[commit_types]]
-type = "chore"
-section = "Chore/CI/Refactor"
-
-[[commit_types]]
-type = "ci"
-section = "Chore/CI/Refactor"
+section = "Maintenance"
 
 [[commit_types]]
 type = "perf"
-section = "Performance"
+section = "Maintenance"
+
+[[commit_types]]
+type = "test"
+section = "Maintenance"
+
+[[commit_types]]
+type = "ci"
+section = "Maintenance"
+
+[[commit_types]]
+type = "chore"
+section = "Maintenance"
+
+[[commit_types]]
+type = "build"
+section = "Maintenance"
