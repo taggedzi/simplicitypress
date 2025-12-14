@@ -309,6 +309,8 @@ See the `docs/` directory for in-depth guides:
 - Theme API & stability
 - Template variables & context
 - Writing templates from scratch
+- SPDX header policy (`docs/spdx.md`)
+- CycloneDX SBOM generation (`docs/sbom.md`)
 
 ---
 

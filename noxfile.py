@@ -57,6 +57,28 @@ def spdx_fix(session: nox.Session) -> None:
 
 
 @nox.session
+def sbom(session: nox.Session) -> None:
+    """Generate a CycloneDX SBOM covering runtime dependencies."""
+    dist_dir = Path("dist")
+    dist_dir.mkdir(parents=True, exist_ok=True)
+    output = dist_dir / "sbom.cdx.json"
+    session.install(".")
+    session.install("cyclonedx-bom")
+    session.run(
+        "python",
+        "-m",
+        "cyclonedx_py",
+        "environment",
+        "--output-format",
+        "JSON",
+        "--output-file",
+        str(output),
+        "--output-reproducible",
+    )
+    session.log(f"SBOM written to {output}")
+
+
+@nox.session
 def typecheck(session: nox.Session) -> None:
     """Run mypy over the source tree."""
     session.install(".[dev]")

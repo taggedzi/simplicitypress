@@ -29,6 +29,32 @@ jobs:
       - name: Run SPDX header check
         run: nox -s spdx
 
+  sbom:
+    name: SBOM generation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Nox
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install nox
+
+      - name: Generate SBOM
+        run: nox -s sbom
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: dist/sbom.cdx.json
+
   tests:
     name: Tests / Lint / Typecheck
     runs-on: ubuntu-latest
