@@ -9,6 +9,10 @@ Releases before v0.2.0 predate that workflow, so earlier sections may not list e
 
 - fix: adjusted git-cliff call to work with older messages. (999cccf)
 
+### Documentation
+
+- docs: add AI assistance disclosure (b6f3253)
+
 ## v0.2.2 - 2025-12-14
 
 ### Fixes
