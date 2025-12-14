@@ -28,6 +28,7 @@ from typing import NoReturn
 
 ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = ROOT / "pyproject.toml"
+CHANGELOG = ROOT / "CHANGELOG.md"
 
 
 def die(msg: str) -> NoReturn:
@@ -95,18 +96,30 @@ def update_version_in_pyproject(new_version: str) -> str:
     return old_version
 
 
+def generate_changelog(version: str) -> None:
+    tag = f"v{version}"
+    cmd = [
+        sys.executable,
+        "tools/update_changelog.py",
+        "--update",
+        "--version",
+        tag,
+    ]
+    run(cmd)
+
+
 def git_commit_and_tag(version: str) -> None:
     """Create a commit and an annotated tag for the new version."""
-    # Stage pyproject.toml
-    run(["git", "add", str(PYPROJECT)])
+    # Stage updated files
+    run(["git", "add", str(PYPROJECT), str(CHANGELOG)])
 
     # Commit
-    msg = f"Release v{version}"
+    msg = f"chore(release): update changelog for v{version}"
     run(["git", "commit", "-m", msg])
 
     # Tag
     tag = f"v{version}"
-    run(["git", "tag", "-a", tag, "-m", msg])
+    run(["git", "tag", "-a", tag, "-m", f"Release {tag}"])
 
     print()
     print(f"Created tag {tag}.")
@@ -128,6 +141,7 @@ def main(argv: list[str]) -> None:
 
     ensure_clean_git()
     update_version_in_pyproject(new_version)
+    generate_changelog(new_version)
     git_commit_and_tag(new_version)
 
 

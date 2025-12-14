@@ -127,6 +127,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download Python dist artifacts
         uses: actions/download-artifact@v4
@@ -140,6 +142,11 @@ jobs:
           name: simplicitypress-windows-release
           path: dist/windows
 
+      - name: Generate release notes from changelog
+        run: |
+          python -m pip install --upgrade pip
+          python tools/update_changelog.py --update --version ${{ github.ref_name }} --include-unreleased=false --output-file CHANGELOG_LATEST.md
+
       # Create or update the GitHub Release for this tag and upload our files
       - name: Create GitHub Release and upload assets
         uses: softprops/action-gh-release@v1
@@ -148,6 +155,7 @@ jobs:
           name: ${{ github.ref_name }}         # e.g. v0.1.2
           draft: false
           prerelease: false
+          body_path: CHANGELOG_LATEST.md
           files: |
             dist/python/*
             dist/windows/*
