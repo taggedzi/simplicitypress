@@ -95,6 +95,10 @@ Pull requests are reviewed for:
 - Test coverage (where appropriate)
 - Alignment with project scope
 
+## AI-Assisted Contributions
+
+Maintainers sometimes rely on AI tools (for example, ChatGPT/Codex) to prototype ideas, but every change is reviewed and owned by a human before merging. If AI assistance significantly shaped your contribution, include a brief note in the pull request so reviewers understand the context.
+
 ---
 
 ## Licensing
