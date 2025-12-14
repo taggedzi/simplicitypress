@@ -12,6 +12,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
+import difflib
 
 SECTION_ORDER = ["Features", "Fixes", "Documentation", "Maintenance", "Other"]
 TYPE_TO_SECTION = {
@@ -46,6 +47,7 @@ class Commit:
 class RenderInfo:
     latest_tag: str | None
     unreleased_range: str | None
+    unreleased_commits: int
 
 
 def run_git(*args: str) -> str:
@@ -166,13 +168,13 @@ def build_release_sections(tags: List[str]) -> List[List[str]]:
 def build_unreleased_section(
     base_ref: str | None,
     include: bool,
-) -> tuple[List[str], str | None]:
+) -> tuple[List[str], str | None, int]:
     if not include:
-        return ([], None)
+        return ([], None, 0)
     range_spec = f"{base_ref}..HEAD" if base_ref else None
     commits = gather_commits(range_spec)
     descriptor = range_spec or "<root>..HEAD"
-    return format_section("Unreleased", commits), descriptor
+    return format_section("Unreleased", commits), descriptor, len(commits)
 
 
 def render_changelog(
@@ -196,7 +198,10 @@ def render_changelog(
         tags = tags[: start_idx + 1]
 
     lines: List[str] = INTRO_LINES.copy()
-    unreleased_lines, range_desc = build_unreleased_section(latest_ref, include_unreleased)
+    unreleased_lines, range_desc, range_count = build_unreleased_section(
+        latest_ref,
+        include_unreleased,
+    )
     lines.extend(unreleased_lines)
     if lines and lines[-1] != "":
         lines.append("")
@@ -204,23 +209,24 @@ def render_changelog(
     for section in release_sections:
         lines.extend(section)
     content = "\n".join(lines).rstrip("\n") + "\n"
-    info = RenderInfo(latest_tag=latest_ref, unreleased_range=range_desc)
+    info = RenderInfo(
+        latest_tag=latest_ref,
+        unreleased_range=range_desc,
+        unreleased_commits=range_count,
+    )
     return content.replace("\r\n", "\n"), info
 
 
+def normalize_text(text: str) -> str:
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    return normalized.rstrip("\n") + "\n"
+
+
 def write_changelog(content: str, path: Path) -> None:
-    normalized = content.replace("\r\n", "\n").rstrip("\n") + "\n"
+    normalized = normalize_text(content)
     tmp_path = path.with_suffix(".tmp")
     tmp_path.write_text(normalized, encoding="utf-8", newline="\n")
     tmp_path.replace(path)
-
-
-def check_changelog(content: str, path: Path) -> bool:
-    existing = ""
-    if path.exists():
-        existing = path.read_text(encoding="utf-8").replace("\r\n", "\n")
-    normalized = content.replace("\r\n", "\n")
-    return existing == normalized
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -257,15 +263,34 @@ def main(argv: list[str] | None = None) -> int:
         version_override=args.version,
         since_ref=args.since,
     )
+    normalized_content = normalize_text(content)
     if args.check:
+        existing = ""
+        if output_path.exists():
+            existing = normalize_text(output_path.read_text(encoding="utf-8"))
         latest = info.latest_tag or "<none>"
         rng = info.unreleased_range or "<unreleased disabled>"
         print(f"[changelog] latest tag: {latest}")
         print(f"[changelog] unreleased range: {rng}")
-        if not check_changelog(content, output_path):
+        print(f"[changelog] unreleased commits: {info.unreleased_commits}")
+        if existing != normalized_content:
+            print("[changelog] Detected differences, showing unified diff (first 200 lines):")
+            diff = list(
+                difflib.unified_diff(
+                    existing.splitlines(keepends=True),
+                    normalized_content.splitlines(keepends=True),
+                    fromfile="CHANGELOG.md (current)",
+                    tofile="CHANGELOG.md (expected)",
+                )
+            )
+            max_lines = 200
+            for line in diff[:max_lines]:
+                print(line, end="")
+            if len(diff) > max_lines:
+                print(f"... (diff truncated, {len(diff) - max_lines} more lines)")
             return 1
     if args.update:
-        write_changelog(content, output_path)
+        write_changelog(normalized_content, output_path)
     return 0
 
 
