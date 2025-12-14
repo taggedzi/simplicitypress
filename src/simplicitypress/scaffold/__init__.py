@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2025 SimplicityPress contributors
+# SPDX-License-Identifier: MIT
 """
 Packaged scaffold assets (templates and static files) for SimplicityPress.
 

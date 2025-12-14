@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2025 SimplicityPress contributors
+# SPDX-License-Identifier: MIT
 """
 SimplicityPress: a small, opinionated static site generator.
 

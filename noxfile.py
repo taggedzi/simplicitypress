@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2025 SimplicityPress contributors
+# SPDX-License-Identifier: MIT
 """Nox automation for SimplicityPress.
 
 Sessions:
@@ -40,6 +42,18 @@ def lint(session: nox.Session) -> None:
     session.install("ruff")
     # Add paths as you grow: tests/, noxfile.py, etc.
     session.run("ruff", "check", "src", "noxfile.py")
+
+
+@nox.session
+def spdx(session: nox.Session) -> None:
+    """Verify that SPDX headers are present."""
+    session.run("python", "tools/add_spdx_headers.py", "--check")
+
+
+@nox.session
+def spdx_fix(session: nox.Session) -> None:
+    """Insert SPDX headers where missing."""
+    session.run("python", "tools/add_spdx_headers.py", "--fix")
 
 
 @nox.session
