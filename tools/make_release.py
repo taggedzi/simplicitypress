@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# SPDX-FileCopyrightText: 2025 SimplicityPress contributors
+# SPDX-License-Identifier: MIT
 """
 make_release.py
 

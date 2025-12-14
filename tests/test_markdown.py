@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2025 SimplicityPress contributors
+# SPDX-License-Identifier: MIT
 from simplicitypress.core.markdown import render_markdown
 
 

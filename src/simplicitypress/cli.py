@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2025 SimplicityPress contributors
+# SPDX-License-Identifier: MIT
 from pathlib import Path
 from typing import Optional
 
