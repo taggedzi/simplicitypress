@@ -181,7 +181,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     root = Path(__file__).resolve().parent.parent
-    year = dt.datetime.utcnow().year
+    year = dt.datetime.now(dt.UTC).year
     target_files = gather_target_files(root)
     stats = process_files(
         target_files,
