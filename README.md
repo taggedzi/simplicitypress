@@ -333,3 +333,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to get involved, coding standar
 ## 🛡 Security
 
 See [`SECURITY.md`](SECURITY.md) for reporting vulnerabilities.
+
+## 🧠 AI Assistance
+
+Portions of SimplicityPress were drafted with help from AI tools (such as ChatGPT/Codex) to accelerate writing and implementation. Maintainers review, test, and accept the final output, so accountability for released code and docs stays with the project. If AI assistance meaningfully shaped a contribution, please note it in the pull request description for transparency.
