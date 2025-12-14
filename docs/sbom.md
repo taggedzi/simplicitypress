@@ -41,3 +41,7 @@ always get a fresh dependency snapshot.
 
 The SBOM is intentionally simple: it describes *what* ships with SimplicityPress,
 so that auditors or downstream packagers have a trustworthy dependency manifest.***
+
+## Notes
+
+- The generated SBOM intentionally excludes Python packaging tools (e.g. pip) to better reflect runtime dependencies consumed by end users.
