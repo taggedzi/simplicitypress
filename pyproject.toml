@@ -35,6 +35,7 @@ dev = [
   "twine",
   "nox",
   "pyinstaller>=6.0",
+  "cyclonedx-bom>=4.0",
 ]
 
 [project.scripts]
