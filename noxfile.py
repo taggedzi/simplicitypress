@@ -69,6 +69,13 @@ def changelog_check(session: nox.Session) -> None:
     session.run("python", "tools/update_changelog.py", "--check")
 
 
+@nox.session(python="3.11")
+def docs_audit(session: nox.Session) -> None:
+    """Run documentation audits to ensure examples and CLI references stay fresh."""
+    session.install(".")
+    session.run("python", "tools/docs_audit.py")
+
+
 @nox.session
 def sbom(session: nox.Session) -> None:
     """Generate a CycloneDX SBOM covering runtime dependencies only."""
