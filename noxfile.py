@@ -63,12 +63,6 @@ def changelog(session: nox.Session) -> None:
     session.run("python", "tools/update_changelog.py", "--update")
 
 
-@nox.session
-def changelog_check(session: nox.Session) -> None:
-    """Verify CHANGELOG.md is up to date."""
-    session.run("python", "tools/update_changelog.py", "--check")
-
-
 @nox.session(python="3.11")
 def docs_audit(session: nox.Session) -> None:
     """Run documentation audits to ensure examples and CLI references stay fresh."""

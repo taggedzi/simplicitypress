@@ -29,3 +29,9 @@ def test_should_skip_subject_filters():
     assert update_changelog.should_skip_subject("Update changelog")
     assert update_changelog.should_skip_subject("docs: tweak changelog wording")
     assert not update_changelog.should_skip_subject("feat: normal commit")
+
+
+def test_normalize_text_handles_weird_spaces():
+    raw = "Lineâ†’one\u202fwith\u00a0spacesâ€¯\n\n"
+    normalized = update_changelog.normalize_text(raw)
+    assert normalized == "Line→one with spaces \n"

@@ -12,7 +12,6 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
-import difflib
 
 SECTION_ORDER = ["Features", "Fixes", "Documentation", "Maintenance", "Other"]
 TYPE_TO_SECTION = {
@@ -225,8 +224,8 @@ def normalize_text(text: str) -> str:
     normalized = normalized.replace("\u00a0", " ")
 
     # Handle historical mojibake
-    normalized = normalized.replace("â€¯", " ")   # U+202F that got mangled
-    normalized = normalized.replace("â†’", "→")   # arrow that got mangled
+    normalized = normalized.replace("â€¯", " ")  # U+202F that got mangled
+    normalized = normalized.replace("â†’", "→")  # arrow that got mangled
 
     return normalized.rstrip("\n") + "\n"
 
@@ -241,7 +240,6 @@ def write_changelog(content: str, path: Path) -> None:
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Update SimplicityPress changelog.")
     parser.add_argument("--update", action="store_true", help="Rewrite CHANGELOG.md")
-    parser.add_argument("--check", action="store_true", help="Check if changelog is up to date")
     parser.add_argument("--version", help="Regenerate up to a specific version/tag")
     parser.add_argument(
         "--since",
@@ -259,8 +257,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Override the changelog path (default: CHANGELOG.md)",
     )
     args = parser.parse_args(argv)
-    if not args.update and not args.check:
-        parser.error("One of --update or --check must be provided.")
+    if not args.update:
+        parser.error("Pass --update to rewrite the changelog.")
     return args
 
 
@@ -273,31 +271,6 @@ def main(argv: list[str] | None = None) -> int:
         since_ref=args.since,
     )
     normalized_content = normalize_text(content)
-    if args.check:
-        existing = ""
-        if output_path.exists():
-            existing = normalize_text(output_path.read_text(encoding="utf-8"))
-        latest = info.latest_tag or "<none>"
-        rng = info.unreleased_range or "<unreleased disabled>"
-        print(f"[changelog] latest tag: {latest}")
-        print(f"[changelog] unreleased range: {rng}")
-        print(f"[changelog] unreleased commits: {info.unreleased_commits}")
-        if existing != normalized_content:
-            print("[changelog] Detected differences, showing unified diff (first 200 lines):")
-            diff = list(
-                difflib.unified_diff(
-                    existing.splitlines(keepends=True),
-                    normalized_content.splitlines(keepends=True),
-                    fromfile="CHANGELOG.md (current)",
-                    tofile="CHANGELOG.md (expected)",
-                )
-            )
-            max_lines = 200
-            for line in diff[:max_lines]:
-                print(line, end="")
-            if len(diff) > max_lines:
-                print(f"... (diff truncated, {len(diff) - max_lines} more lines)")
-            return 1
     if args.update:
         write_changelog(normalized_content, output_path)
     return 0
