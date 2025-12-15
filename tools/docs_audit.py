@@ -47,6 +47,13 @@ class PythonBlock:
         return "no-run" not in meta_tokens
 
 
+def ensure_src_on_path() -> None:
+    """Ensure the repository src/ directory is importable."""
+    src = str(SRC_DIR)
+    if src not in sys.path:
+        sys.path.insert(0, src)
+
+
 def remove_no_audit_sections(text: str) -> str:
     """
     Remove ``<!-- no-audit -->`` sections from text.
@@ -91,6 +98,29 @@ def read_markdown_commands(paths: Iterable[Path]) -> set[str]:
         text = file_path.read_text(encoding="utf-8")
         cleaned = remove_no_audit_sections(text)
         commands.update(extract_cli_commands(cleaned))
+    return commands
+
+
+def get_cli_commands_from_app() -> set[str]:
+    """Inspect the Typer app to obtain declared CLI commands."""
+    ensure_src_on_path()
+    try:
+        from simplicitypress import cli  # type: ignore import
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError("Unable to import simplicitypress.cli") from exc
+
+    command_infos = getattr(cli.app, "registered_commands", None)
+    if not command_infos:
+        raise RuntimeError("Typer app exposes no registered commands.")
+
+    commands: set[str] = set()
+    for info in command_infos:
+        name = getattr(info, "name", None)
+        if not name:
+            callback = getattr(info, "callback", None)
+            name = getattr(callback, "__name__", None)
+        if name:
+            commands.add(name)
     return commands
 
 
@@ -218,7 +248,11 @@ def main() -> None:
     """Entry point for the docs audit helper."""
     markdown_files = gather_markdown_files()
     mentioned_commands = read_markdown_commands(markdown_files)
-    cli_commands = get_cli_commands_from_help()
+    try:
+        cli_commands = get_cli_commands_from_app()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[docs_audit] Typer inspection failed ({exc}); falling back to --help parsing.")
+        cli_commands = get_cli_commands_from_help()
     unknown = sorted(mentioned_commands - cli_commands)
     if unknown:
         listed = ", ".join(sorted(unknown))
