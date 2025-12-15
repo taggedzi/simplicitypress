@@ -7,12 +7,18 @@ Releases before v0.2.0 predate that workflow, so earlier sections may not list e
 
 ### Fixes
 
+- fix: inspect CLI commands directly (1948e7f)
+- fix: handle colored CLI help output (bdd1798)
 - fix: adjusted git-cliff call to work with older messages. (999cccf)
 
 ### Documentation
 
 - docs: add AI assistance disclosure (67fb7b5)
 - docs: add AI assistance disclosure (b6f3253)
+
+### Maintenance
+
+- ci: add docs audit (28e3c1f)
 
 ## v0.2.2 - 2025-12-14
 
