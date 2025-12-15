@@ -5,10 +5,14 @@ Releases before v0.2.0 predate that workflow, so earlier sections may not list e
 
 ## Unreleased
 
+_No notable changes._
+
+## v0.2.3 - 2025-12-14
+
 ### Features
 
 - feat:(app-icon) (fa02f65)
-- feat(gui): add app icon loading and Help â†’ About dialog (8805aa9)
+- feat(gui): add app icon loading and Help → About dialog (8805aa9)
 
 ### Fixes
 
