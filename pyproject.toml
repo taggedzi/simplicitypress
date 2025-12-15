@@ -53,6 +53,7 @@ simplicitypress = [
   "scaffold/templates/*.html",
   "scaffold/templates/*.xml",
   "scaffold/static/css/*.css",
+  "resources/icons/*.ico",
 ]
 
 # Coverage configuration: treat GUI and __main__ as manual/system-test code

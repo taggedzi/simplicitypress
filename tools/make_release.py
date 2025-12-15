@@ -23,7 +23,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import NoReturn
+from typing import NoReturn, Sequence
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -108,16 +108,32 @@ def generate_changelog(version: str) -> None:
     run(cmd)
 
 
-def git_commit_and_tag(version: str) -> None:
-    """Create a commit and an annotated tag for the new version."""
-    # Stage updated files
-    run(["git", "add", str(PYPROJECT), str(CHANGELOG)])
+def git_has_changes(path: Path) -> bool:
+    """Return True when the file differs from HEAD."""
+    result = run(
+        ["git", "status", "--porcelain", "--", str(path)],
+        capture_output=True,
+    )
+    return bool(result.stdout.strip())
 
-    # Commit
-    msg = f"chore(release): update changelog for v{version}"
-    run(["git", "commit", "-m", msg])
 
-    # Tag
+def collect_changed_files(paths: Sequence[Path]) -> list[Path]:
+    changed: list[Path] = []
+    for path in paths:
+        if git_has_changes(path):
+            changed.append(path)
+    return changed
+
+
+def git_commit_and_tag(version: str, files_to_commit: Sequence[Path]) -> None:
+    """Create a commit (if needed) and an annotated tag for the new version."""
+    if files_to_commit:
+        run(["git", "add", *[str(path) for path in files_to_commit]])
+        msg = f"chore(release): update changelog for v{version}"
+        run(["git", "commit", "-m", msg])
+    else:
+        print("No file changes detected; skipping commit.")
+
     tag = f"v{version}"
     run(["git", "tag", "-a", tag, "-m", f"Release {tag}"])
 
@@ -142,7 +158,8 @@ def main(argv: list[str]) -> None:
     ensure_clean_git()
     update_version_in_pyproject(new_version)
     generate_changelog(new_version)
-    git_commit_and_tag(new_version)
+    changed_files = collect_changed_files([PYPROJECT, CHANGELOG])
+    git_commit_and_tag(new_version, changed_files)
 
 
 if __name__ == "__main__":
