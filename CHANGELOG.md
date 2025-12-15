@@ -12,6 +12,7 @@ Releases before v0.2.0 predate that workflow, so earlier sections may not list e
 
 ### Fixes
 
+- bug: typecheck error on run fix. (e1a5e87)
 - fix: inspect CLI commands directly (1948e7f)
 - fix: handle colored CLI help output (bdd1798)
 - fix: adjusted git-cliff call to work with older messages. (999cccf)
