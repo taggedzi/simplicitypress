@@ -7,6 +7,7 @@ Releases before v0.2.0 predate that workflow, so earlier sections may not list e
 
 ### Features
 
+- feat:(app-icon) (fa02f65)
 - feat(gui): add app icon loading and Help â†’ About dialog (8805aa9)
 
 ### Fixes
