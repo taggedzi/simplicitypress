@@ -15,4 +15,4 @@ def get_icon_path() -> Path:
     Return the filesystem path to the packaged SimplicityPress icon.
     """
     resource = files(__name__).joinpath("icons", "simplicitypress.ico")
-    return Path(resource)
+    return Path(str(resource))

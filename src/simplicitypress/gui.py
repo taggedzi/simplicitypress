@@ -603,9 +603,9 @@ class SimplicityPressWindow(QMainWindow):
             ],
         )
 
-        button_box = QDialogButtonBox(QDialogButtonBox.Close)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         copy_button = QPushButton("Copy details")
-        button_box.addButton(copy_button, QDialogButtonBox.ActionRole)
+        button_box.addButton(copy_button, QDialogButtonBox.ButtonRole.ActionRole)
         copy_button.clicked.connect(lambda: QApplication.clipboard().setText(details_text))
 
         button_box.accepted.connect(dialog.accept)
