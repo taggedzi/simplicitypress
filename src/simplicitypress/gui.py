@@ -96,8 +96,9 @@ def default_output_dir(site_root: Path) -> Path:
 
 
 APP_DESCRIPTION = (
-    "Convert Markdown and media into a fully static HTML/CSS site with themes, "
-    "search, feeds, sitemap, and tags."
+    "SimplicityPress is a minimal, library-first static site generator designed "
+    "for people who want a clean, predictable Markdown → HTML workflow without "
+    "the complexity of full CMS platforms or heavyweight SSG ecosystems."
 )
 GITHUB_URL = "https://github.com/taggedzi/simplicitypress"
 
