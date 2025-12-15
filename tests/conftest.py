@@ -10,8 +10,11 @@ import types
 def _ensure_src_on_path() -> None:
     """Ensure the src/ directory is on sys.path for imports."""
     root = Path(__file__).resolve().parents[1]
+    root_str = str(root)
     src = root / "src"
     src_str = str(src)
+    if root_str not in sys.path:
+        sys.path.insert(0, root_str)
     if src.is_dir() and src_str not in sys.path:
         sys.path.insert(0, src_str)
 

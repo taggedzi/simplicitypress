@@ -312,6 +312,7 @@ See the `docs/` directory for in-depth guides:
 - SPDX header policy (`docs/spdx.md`)
 - CycloneDX SBOM generation (`docs/sbom.md`)
 - Release workflow & changelog automation (`docs/release.md`)
+- Documentation policy (`docs/documentation_policy.md`)
 
 ---
 
