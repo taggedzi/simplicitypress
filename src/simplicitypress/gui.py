@@ -15,11 +15,15 @@ import socketserver
 import threading
 import webbrowser
 
+from importlib import metadata as importlib_metadata
 from PySide6.QtCore import QObject, QThread, Qt, Signal
-from PySide6.QtGui import QCloseEvent, QTextCursor
+from PySide6.QtGui import QCloseEvent, QIcon, QTextCursor
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -32,11 +36,11 @@ from PySide6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
-    QFileDialog,
 )
 
 from simplicitypress.api import build_site_api, init_site
 from simplicitypress.core import ProgressEvent
+from simplicitypress.resources import get_icon_path
 
 
 @dataclass
@@ -91,14 +95,46 @@ def default_output_dir(site_root: Path) -> Path:
     return site_root / "output"
 
 
+APP_DESCRIPTION = (
+    "Convert Markdown and media into a fully static HTML/CSS site with themes, "
+    "search, feeds, sitemap, and tags."
+)
+GITHUB_URL = "https://github.com/taggedzi/simplicitypress"
+
+
+def _load_app_icon() -> Optional[QIcon]:
+    """
+    Load the packaged application icon if available.
+    """
+    try:
+        icon_path = get_icon_path()
+    except FileNotFoundError:
+        return None
+    icon = QIcon(str(icon_path))
+    return icon if not icon.isNull() else None
+
+
+def _resolve_version() -> str:
+    try:
+        return importlib_metadata.version("simplicitypress")
+    except importlib_metadata.PackageNotFoundError:
+        return "unknown"
+    except Exception:
+        return "unknown"
+
+
 class SimplicityPressWindow(QMainWindow):
     """
     Main window for the SimplicityPress GUI.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, app_icon: Optional[QIcon] = None) -> None:
         super().__init__()
         self.setWindowTitle("SimplicityPress")
+        self._app_icon = app_icon
+        if self._app_icon is not None:
+            self.setWindowIcon(self._app_icon)
+        self._version = _resolve_version()
         self._current_thread: Optional[QThread] = None
         self._current_worker: Optional[CommandWorker] = None
         self._command_running = False
@@ -107,6 +143,7 @@ class SimplicityPressWindow(QMainWindow):
         self._serve_port: int = 8000
 
         self._build_ui()
+        self._build_menu()
         self._update_site_state()
 
     def _build_ui(self) -> None:
@@ -190,6 +227,12 @@ class SimplicityPressWindow(QMainWindow):
         # Connect edits
         self.site_root_edit.editingFinished.connect(self._on_site_root_changed)
         self.output_edit.editingFinished.connect(self._on_output_changed)
+
+    def _build_menu(self) -> None:
+        menu_bar = self.menuBar()
+        help_menu = menu_bar.addMenu("&Help")
+        about_action = help_menu.addAction("About")
+        about_action.triggered.connect(self._show_about_dialog)
 
     def _on_site_root_changed(self) -> None:
         self._update_site_state()
@@ -511,13 +554,76 @@ class SimplicityPressWindow(QMainWindow):
 
         event.accept()
 
+    def _show_about_dialog(self) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("About SimplicityPress")
+        if self._app_icon is not None:
+            dialog.setWindowIcon(self._app_icon)
+
+        layout = QVBoxLayout(dialog)
+        header_layout = QHBoxLayout()
+        if self._app_icon is not None and not self._app_icon.isNull():
+            icon_label = QLabel()
+            pixmap = self._app_icon.pixmap(64, 64)
+            icon_label.setPixmap(pixmap)
+            header_layout.addWidget(icon_label)
+
+        title_label = QLabel(f"<h2>SimplicityPress</h2><p>Version {self._version}</p>")
+        title_label.setTextFormat(Qt.TextFormat.RichText)
+        header_layout.addWidget(title_label)
+        header_layout.addStretch(1)
+        layout.addLayout(header_layout)
+
+        description_label = QLabel(APP_DESCRIPTION)
+        description_label.setWordWrap(True)
+        layout.addWidget(description_label)
+
+        link_label = QLabel(f'<a href="{GITHUB_URL}">{GITHUB_URL}</a>')
+        link_label.setOpenExternalLinks(True)
+        link_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        layout.addWidget(link_label)
+
+        legal_label = QLabel(
+            "This application bundles third-party software. See "
+            "<code>THIRD-PARTY-NOTICES.txt</code>, <code>QT-ATTRIBUTION.txt</code>, "
+            "and <code>LICENSES/pyside_lgpl.txt</code> for details.",
+        )
+        legal_label.setWordWrap(True)
+        legal_label.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(legal_label)
+
+        details_text = "\n".join(
+            [
+                "SimplicityPress",
+                f"Version: {self._version}",
+                APP_DESCRIPTION,
+                f"Project: {GITHUB_URL}",
+                "Notices: THIRD-PARTY-NOTICES.txt, QT-ATTRIBUTION.txt, LICENSES/pyside_lgpl.txt",
+            ],
+        )
+
+        button_box = QDialogButtonBox(QDialogButtonBox.Close)
+        copy_button = QPushButton("Copy details")
+        button_box.addButton(copy_button, QDialogButtonBox.ActionRole)
+        copy_button.clicked.connect(lambda: QApplication.clipboard().setText(details_text))
+
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+
+        dialog.setModal(True)
+        dialog.exec()
+
 
 def main() -> None:
     """
     Entry point for launching the SimplicityPress GUI.
     """
     app = QApplication(sys.argv)
-    window = SimplicityPressWindow()
+    app_icon = _load_app_icon()
+    if app_icon is not None:
+        app.setWindowIcon(app_icon)
+    window = SimplicityPressWindow(app_icon=app_icon)
     window.resize(900, 700)
     window.show()
     sys.exit(app.exec())
