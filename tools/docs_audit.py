@@ -29,6 +29,7 @@ NO_AUDIT_BEGIN = "<!-- no-audit -->"
 NO_AUDIT_END = "<!-- /no-audit -->"
 CLI_PATTERN = re.compile(r"simplicitypress\s+([a-zA-Z0-9_-]+)")
 PY_BLOCK_PATTERN = re.compile(r"```python(?P<info>[^\n]*)\n(?P<body>.*?)```", re.DOTALL)
+ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
 
 
 @dataclass
@@ -103,6 +104,8 @@ def get_cli_commands_from_help() -> set[str]:
     if existing:
         src_entries.append(existing)
     env["PYTHONPATH"] = os.pathsep.join(src_entries)
+    # Disable color/box drawing to keep parsing simple.
+    env.setdefault("NO_COLOR", "1")
     result = subprocess.run(
         [sys.executable, "-m", "simplicitypress", "--help"],
         check=True,
@@ -113,7 +116,8 @@ def get_cli_commands_from_help() -> set[str]:
     )
     commands: set[str] = set()
     in_commands = False
-    for line in result.stdout.splitlines():
+    for raw_line in result.stdout.splitlines():
+        line = strip_ansi(raw_line)
         stripped = line.strip()
         if not stripped:
             continue
@@ -237,6 +241,11 @@ def main() -> None:
         raise SystemExit(msg)
 
     print("Docs audit passed.")
+
+
+def strip_ansi(text: str) -> str:
+    """Remove ANSI escape sequences."""
+    return ANSI_ESCAPE.sub("", text)
 
 
 if __name__ == "__main__":

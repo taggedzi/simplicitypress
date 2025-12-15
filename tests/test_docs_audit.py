@@ -69,3 +69,8 @@ def test_find_missing_docstrings_reports_public_defs(tmp_path: Path) -> None:
     missing = docs_audit.find_missing_docstrings([module])
     assert any("public" in entry for entry in missing)
     assert not any("documented" in entry for entry in missing)
+
+
+def test_strip_ansi_sequences() -> None:
+    text = "\x1b[1mCommands:\x1b[0m"
+    assert docs_audit.strip_ansi(text) == "Commands:"
